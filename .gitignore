@@ -1,0 +1,18 @@
+# Editors
+.vscode
+.idea
+
+# Compiled
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Packaging
+build/
+develop-eggs/
+dist/
+*.egg-info/
+
+# Environments
+.env
+.venv
