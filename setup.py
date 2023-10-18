@@ -9,6 +9,8 @@ setuptools.setup(
     version=__version__,
     author="Zabbix SIA",
     author_email="integrationteam@zabbix.com",
+    maintainer="Aleksandr Iantsen",
+    maintainer_email="aleksandr.iantsen@zabbix.com",
     description="A library with modules for working with Zabbix (Zabbix API, Zabbix sender, Zabbix get)",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -22,15 +24,15 @@ setuptools.setup(
     project_urls={
         'Zabbix': 'https://www.zabbix.com/documentation/current',
         'Source': 'https://github.com/zabbix/python-zabbix-utils',
-        'Changes': 'https://github.com/zabbix/python-zabbix-utils/blob/master/CHANGELOG.md',
+        'Changes': 'https://github.com/zabbix/python-zabbix-utils/blob/main/CHANGELOG.md',
         'Bug Tracker': 'https://github.com/zabbix/python-zabbix-utils/issues'
     },
     classifiers=[
         "Development Status :: 4 - Beta",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-		"License :: OSI Approved :: MIT License",
-		"Operating System :: OS Independent",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
         "Topic :: System :: Monitoring",
         "Topic :: System :: Networking :: Monitoring",
         "Topic :: System :: Systems Administration",

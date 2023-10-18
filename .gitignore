@@ -16,3 +16,7 @@ dist/
 # Environments
 .env
 .venv
+
+# Coverage
+htmlcov/
+.coverage

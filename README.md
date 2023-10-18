@@ -105,7 +105,7 @@ print(ver.is_lts()) # True
 api.logout()
 ```
 
-> Please, refer to the [Zabbix API Documentation](https://www.zabbix.com/documentation/current/manual/api/reference) and the [using examples](https://github.com/zabbix/python-zabbix-utils/tree/master/examples/api) for more information.
+> Please, refer to the [Zabbix API Documentation](https://www.zabbix.com/documentation/current/manual/api/reference) and the [using examples](https://github.com/zabbix/python-zabbix-utils/tree/main/examples/api) for more information.
 
 ##### To work via Zabbix sender protocol
 
@@ -141,7 +141,7 @@ print(chunks_resp)
 # [{"processed": 5, "failed": 0, "total": 5, "time": "0.001661", "chunk": 1}]
 ```
 
-> Please, refer to the [Zabbix sender protocol](https://www.zabbix.com/documentation/current/manual/appendix/protocols/zabbix_sender) and the [using examples](https://github.com/zabbix/python-zabbix-utils/tree/master/examples/sender) for more information.
+> Please, refer to the [Zabbix sender protocol](https://www.zabbix.com/documentation/current/manual/appendix/protocols/zabbix_sender) and the [using examples](https://github.com/zabbix/python-zabbix-utils/tree/main/examples/sender) for more information.
 
 ##### To work via Zabbix get protocol
 
@@ -157,7 +157,7 @@ print(resp)
 # Linux test_server 5.15.0-3.60.5.1.el9uek.x86_64
 ```
 
-> Please, refer to the [Zabbix agent protocol](https://www.zabbix.com/documentation/current/manual/appendix/protocols/zabbix_agent) and the [using examples](https://github.com/zabbix/python-zabbix-utils/tree/master/examples/get) for more information.
+> Please, refer to the [Zabbix agent protocol](https://www.zabbix.com/documentation/current/manual/appendix/protocols/zabbix_agent) and the [using examples](https://github.com/zabbix/python-zabbix-utils/tree/main/examples/get) for more information.
 
 ### Enabling debug log
 
