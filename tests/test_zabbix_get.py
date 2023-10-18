@@ -1,7 +1,9 @@
 import json
+import socket
 import unittest
 
 from zabbix_utils.get import ZabbixGet
+from zabbix_utils.exceptions import ProcessingException
 
 
 DEFAULT_VALUES = {
@@ -43,20 +45,25 @@ class TestZabbixGet(unittest.TestCase):
 
             self.assertEqual(json.dumps(agent.__dict__), case['output'],
                              f"unexpected output with input data: {case['input']}")
+            
+            with self.assertRaises(TypeError,
+                                   msg="expected TypeError exception hasn't been raised"):
+                agent = ZabbixGet(socket_wrapper='wrapper', **case['input'])
 
     def test_create_packet(self):
         """Tests __create_packet method in different cases"""
 
         test_cases = [
-            {'input': 'test', 'output': b'ZBXD\x01\x04\x00\x00\x00\x00\x00\x00\x00test'},
-            {'input': 'test_creating_packet', 'output': b'ZBXD\x01\x14\x00\x00\x00\x00\x00\x00\x00test_creating_packet'}
+            {'input': {'data':'test'}, 'output': b'ZBXD\x01\x04\x00\x00\x00\x00\x00\x00\x00test'},
+            {'input': {'data':'test_creating_packet'}, 'output': b'ZBXD\x01\x14\x00\x00\x00\x00\x00\x00\x00test_creating_packet'},
+            {'input': {'data':'test_compression_flag', 'compressed_size': 5}, 'output': b'ZBXD\x02\x05\x00\x00\x00\x15\x00\x00\x00test_compression_flag'}
         ]
 
         for case in test_cases:
 
             agent = ZabbixGet()
 
-            self.assertEqual(agent._ZabbixGet__create_packet(case['input']), case['output'],
+            self.assertEqual(agent._ZabbixGet__create_packet(**case['input']), case['output'],
                              f"unexpected output with input data: {case['input']}")
 
     def test_get_response(self):
@@ -64,7 +71,8 @@ class TestZabbixGet(unittest.TestCase):
 
         test_cases = [
             {'input': b'ZBXD\x01\x04\x00\x00\x00\x04\x00\x00\x00test', 'output': 'test'},
-            {'input': b'ZBXD\x01\x14\x00\x00\x00\x14\x00\x00\x00test_creating_packet', 'output': 'test_creating_packet'}
+            {'input': b'ZBXD\x01\x14\x00\x00\x00\x00\x00\x00\x00test_creating_packet', 'output': 'test_creating_packet'},
+            {'input': b'ZBXD\x02\x00\x00\x00\x00\x15\x00\x00\x00test_compression_flag', 'output': 'test_compression_flag'}
         ]
 
         class ConnectTest():
@@ -76,7 +84,7 @@ class TestZabbixGet(unittest.TestCase):
                 self.stream = self.stream[len:]
                 return resp
             def close(self):
-                pass
+                raise socket.error("test error")
 
         for case in test_cases:
 
@@ -85,6 +93,25 @@ class TestZabbixGet(unittest.TestCase):
 
             self.assertEqual(agent._ZabbixGet__get_response(conn), case['output'],
                              f"unexpected output with input data: {case['input']}")
+
+        with self.assertRaises(ProcessingException,
+                               msg="expected ProcessingException exception hasn't been raised"):
+            agent = ZabbixGet()
+            conn = ConnectTest(b'test')
+            agent._ZabbixGet__get_response(conn)
+
+        with self.assertRaises(ProcessingException,
+                               msg="expected ProcessingException exception hasn't been raised"):
+            agent = ZabbixGet()
+            conn = ConnectTest(b'ZBXD\x04\x04\x00\x00\x00\x04\x00\x00\x00test')
+            agent._ZabbixGet__get_response(conn)
+
+        with self.assertRaises(ProcessingException,
+                               msg="expected ProcessingException exception hasn't been raised"):
+            agent = ZabbixGet()
+            conn = ConnectTest(b'ZBXD\x05\x04\x00\x00\x00\x04\x00\x00\x00test')
+            agent._ZabbixGet__get_response(conn)
+
 
 
 if __name__ == '__main__':
