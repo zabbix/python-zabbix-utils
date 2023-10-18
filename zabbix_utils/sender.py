@@ -357,9 +357,10 @@ class ZabbixSender():
 
         log.debug('Zabbix response header: %s', response_header)
 
-        if (not response_header.startswith(b'ZBXD\x01') or
+        if (not response_header.startswith(b'ZBXD') or
                 len(response_header) != header_size):
             log.debug('Unexpected response was received from Zabbix.')
+            raise ProcessingException('Unexpected response was received from Zabbix.')
         else:
             flags, datalen, reserved = struct.unpack('<BII', response_header[4:])
             if flags == 0x01:
@@ -405,7 +406,7 @@ class ZabbixSender():
             datalen = len(request)
             reserved = 0
         else:
-            flags |= 0x02
+            flags = 0x02
             datalen = compressed_size
             reserved = len(request)
 
