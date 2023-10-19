@@ -431,7 +431,7 @@ class ZabbixAPI():
 
         return bool(refresh_resp)
 
-    def send_api_request(self, method: str, params: Union[dict, None] = None, 
+    def send_api_request(self, method: str, params: Union[dict, None] = None,
                          need_auth=True) -> dict:
         """Function for sending request to Zabbix API.
 
