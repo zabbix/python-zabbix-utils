@@ -1,0 +1,47 @@
+name: code_and_environment
+run-name: Library unit-tests on different platforms and versions
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-linux:
+    strategy:
+      matrix:
+        python-version:
+          - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+        platform:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    runs-on: ${{ matrix.platform }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+          python -m pip install --upgrade pip
+          pip install -r ./requirements.txt
+          pip install -r ./requirements-dev.txt
+          pip install coverage
+    - name: Lint with flake8
+      run: |
+        flake8 .\zabbix_utils\ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 .\zabbix_utils\ --count --exit-zero --max-complexity=20 --max-line-length=127 --statistics
+    - name: Test with unittest
+      run: |
+          python -m unittest discover -s ./tests -p 'test_*.py'
+    - name: Test with coverage
+      run: |
+          coverage run -m unittest discover -s ./tests -p 'test_*.py'
+          coverage json
