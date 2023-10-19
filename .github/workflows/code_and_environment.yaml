@@ -36,12 +36,9 @@ jobs:
           pip install coverage
     - name: Lint with flake8
       run: |
-        flake8 .\zabbix_utils\ --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 .\zabbix_utils\ --count --exit-zero --max-complexity=20 --max-line-length=127 --statistics
+        flake8 ./zabbix_utils/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 ./zabbix_utils/ --count --exit-zero --max-complexity=20 --max-line-length=127 --statistics
     - name: Test with unittest
       run: |
           python -m unittest discover -s ./tests -p 'test_*.py'
-    - name: Test with coverage
-      run: |
-          coverage run -m unittest discover -s ./tests -p 'test_*.py'
-          coverage json
+
