@@ -1,4 +1,4 @@
-name: code_and_environment
+name: tests
 run-name: Library unit-tests on different platforms and versions
 
 on:
