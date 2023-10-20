@@ -53,11 +53,14 @@ def sendMessage(msg, passthrough=True):
 
 
 if len(sys.argv) == 2:
-    result = sendMessage(sys.argv[1])
+    message = sys.argv[1]
 else:
-    result = sendMessage(sys.stdin.read())
+    message = sys.stdin.read()
 
-result = json.loads(result)
+if not message:
+    sys.exit(0)
+
+result = json.loads(sendMessage(message))
 if not result["ok"]:
     print(result["error_code"], result["description"])
     sys.exit(1)
