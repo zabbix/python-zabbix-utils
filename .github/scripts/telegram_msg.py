@@ -8,10 +8,10 @@ chat_id = os.environ.get("TBOT_CHAT")   # chat id. env TBOT_CHAT must be set!
 token = os.environ.get("TBOT_TOKEN")    # bot token. env TBOT_TOKEN must be set!
 parse_mode = 'HTML'                     # HTML, MarkdownV2 or empty
 
-if not os.environ.get("TBOT_CHAT"):
-    print('Please set environmental variable "TBOT_CHAT"')
-if not os.environ.get("TBOT_TOKEN"):
-    print('Please set environmental variable "TBOT_TOKEN"')
+for key in ["TBOT_CHAT", "TBOT_TOKEN"]:
+    if not os.environ.get(key):
+        print(f"Please set environmental variable \"{key}\"")
+        sys.exit(1)
 
 
 def sendMessage(msg, passthrough=True):

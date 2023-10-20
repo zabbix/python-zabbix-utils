@@ -26,5 +26,5 @@ jobs:
       env:
         TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
         TBOT_CHAT: ${{ vars.TBOT_CHAT }}
-        SUBJECT: Found new Zabbix release
+        SUBJECT: zabbix_utils repo requires update due new Zabbix release
       run: tail /tmp/check_release.log | python ./.github/scripts/telegram_msg.py
