@@ -1,4 +1,4 @@
-name: compatibility_50
+name: zabbix_50
 run-name: Run compatibility with Zabbix 5.0 test
 on:
   pull_request:
