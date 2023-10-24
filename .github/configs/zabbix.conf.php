@@ -1,0 +1,20 @@
+<?php
+$DB['TYPE']             = 'POSTGRESQL';
+$DB['SERVER']           = 'localhost';
+$DB['PORT']             = '0';
+$DB['DATABASE']         = 'zabbix';
+$DB['USER']             = 'zabbix';
+$DB['PASSWORD']         = '';
+$DB['SCHEMA']           = '';
+$DB['ENCRYPTION']       = false;
+$DB['KEY_FILE']         = '';
+$DB['CERT_FILE']        = '';
+$DB['CA_FILE']          = '';
+$DB['VERIFY_HOST']      = false;
+$DB['CIPHER_LIST']      = '';
+$DB['VAULT_URL']        = '';
+$DB['VAULT_DB_PATH']    = '';
+$DB['VAULT_TOKEN']      = '';
+$DB['DOUBLE_IEEE754']   = true;
+$ZBX_SERVER_NAME        = 'Zabbix Test instance';
+$IMAGE_FORMAT_DEFAULT   = IMAGE_FORMAT_PNG;

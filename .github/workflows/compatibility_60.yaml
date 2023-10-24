@@ -1,0 +1,83 @@
+name: compatibility_60
+run-name: Run compatibility with Zabbix 6.0 test
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  ZABBIX_VERSION: '6.0'
+  ZABBIX_BRANCH: release/$ZABBIX_VERSION
+  CONFIG_PATH: .github/configs/
+  TEST_FILE: compatibility_api_test_6.py
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install packages
+        run: |
+          sudo apt update && sudo apt install -y git sudo gcc make automake pkg-config postgresql-14 libpostgresql-ocaml-dev libxml2-dev libpcre3-dev libevent-dev apache2 libapache2-mod-php php8.1-pgsql php8.1-bcmath php8.1-xml php8.1-gd php8.1-ldap php8.1-mbstring libzip-dev      
+      - name: Build from sources
+        run: |
+          WORKDIR=$(pwd)
+          cd /tmp/
+          git -c advice.detachedHead=false clone https://git.zabbix.com/scm/zbx/zabbix.git --branch ${{ env.ZABBIX_BRANCH }} --depth 1 --single-branch /tmp/zabbix-branch
+          cd /tmp/zabbix-branch
+          ./bootstrap.sh
+          ./configure --enable-server --enable-agent --with-postgresql
+          sudo make dbschema_postgresql
+          sudo make 
+          cd ui
+          sudo rm /var/www/html/index.html
+          sudo cp -a . /var/www/html/
+          sudo cp $WORKDIR/${{ env.CONFIG_PATH }}/zabbix.conf.php /var/www/html/conf/
+          sudo cp $WORKDIR/${{ env.CONFIG_PATH }}/pg_hba.conf /etc/postgresql/14/main/pg_hba.conf
+          sudo chown -R www-data:www-data /var/www/html/
+          sudo sed -i "s/post_max_size = 8M/post_max_size = 16M/g" /etc/php/8.1/apache2/php.ini
+          sudo sed -i "s/max_execution_time = 30/max_execution_time = 300/g" /etc/php/8.1/apache2/php.ini
+          sudo sed -i "s/max_input_time = 60/max_input_time = 300/g" /etc/php/8.1/apache2/php.ini
+          sudo locale-gen en_US.UTF-8
+          sudo update-locale
+      - name: Prepare environment
+        run: |
+          sudo addgroup --system --quiet zabbix
+          sudo adduser --quiet --system --disabled-login --ingroup zabbix --home /var/lib/zabbix --no-create-home zabbix
+          sudo mkdir -p /var/run/postgresql/14-main.pg_stat_tmp
+          sudo touch /var/run/postgresql/14-main.pg_stat_tmp/global.tmp
+          sudo chmod 0777 /var/run/postgresql/14-main.pg_stat_tmp/global.tmp
+          (sudo -u postgres /usr/lib/postgresql/14/bin/postgres -D /var/lib/postgresql/14/main -c config_file=/etc/postgresql/14/main/postgresql.conf)&
+          sleep 1
+          cd /tmp/zabbix-branch/database/postgresql
+          sudo -u postgres createuser zabbix
+          sudo -u postgres createdb -O zabbix -E Unicode -T template0 zabbix
+          cat schema.sql | sudo -u zabbix psql zabbix
+          cat images.sql | sudo -u zabbix psql zabbix
+          cat data.sql | sudo -u zabbix psql zabbix      
+          sudo apache2ctl start
+      - name: Start Zabbix server
+        run: |
+          cd /tmp/zabbix-branch 
+          sudo ./src/zabbix_server/zabbix_server -c ./conf/zabbix_server.conf
+      - name: Start Zabbix agent
+        run: |
+          cd /tmp/zabbix-branch 
+          sudo ./src/zabbix_agent/zabbix_agentd -c ./conf/zabbix_agentd.conf
+      - name: Install python3
+        run: | 
+          sudo apt-get install -y python3 python3-pip python-is-python3
+          pip install typing-extensions>=4.0.0
+      - name: Wait for Zabbix API
+        run: |
+          python ./.github/scripts/wait_instance_zabbix.py
+      - name: Compatibility test
+        run: |
+            python ./.github/scripts/$TEST_FILE 2>/tmp/compatibility.log >/dev/null
+      - name: Send report
+        env:
+          TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
+          TBOT_CHAT: ${{ vars.TBOT_CHAT }}
+          SUBJECT: Compatibility with Zabbix ${{ env.ZABBIX_VERSION }} FAIL
+        run: tail -n1 /tmp/compatibility.log | grep "OK" 1>/dev/null || tail /tmp/compatibility.log | python ./.github/scripts/telegram_msg.py
