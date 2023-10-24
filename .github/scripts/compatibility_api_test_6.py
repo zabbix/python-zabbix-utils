@@ -170,7 +170,7 @@ class CompatibilitySenderTest(unittest.TestCase):
                 value_type=3
             )['itemids'][0]
 
-            time.sleep(60)
+            time.sleep(2)
 
         self.assertIsNotNone(hostid, "Creating test item was going wrong")
 

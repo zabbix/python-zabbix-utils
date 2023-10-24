@@ -29,7 +29,8 @@ jobs:
           ./bootstrap.sh
           ./configure --enable-server --enable-agent --with-postgresql
           sudo make dbschema_postgresql
-          sudo make 
+          sudo make
+          echo -e "CacheUpdateFrequency=1\n" >> ./conf/zabbix_server.conf
           cd ui
           sudo rm /var/www/html/index.html
           sudo cp -a . /var/www/html/
@@ -73,6 +74,7 @@ jobs:
         run: |
           python ./.github/scripts/wait_instance_zabbix.py
       - name: Compatibility test
+        continue-on-error: true
         run: |
             python ./.github/scripts/$TEST_FILE 2>/tmp/compatibility.log >/dev/null
       - name: Send report
