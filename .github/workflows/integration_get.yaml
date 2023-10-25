@@ -1,0 +1,48 @@
+name: get
+run-name: Run Zabbix get integration test
+
+on:
+  #push:
+  #  branches: [main]
+  #pull_request:
+  #  branches: [main]
+  workflow_dispatch:
+
+env:
+  ZABBIX_VERSION: '6.0'
+  ZABBIX_BRANCH: master
+  CONFIG_PATH: .github/configs/
+  TEST_FILE: integration_get_test.py
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install packages
+        run: |
+          sudo wget https://repo.zabbix.com/zabbix/${{ env.ZABBIX_VERSION }}/ubuntu/pool/main/z/zabbix-release/zabbix-release_${{ env.ZABBIX_VERSION }}-4+ubuntu22.04_all.deb
+          sudo dpkg -i zabbix-release_${{ env.ZABBIX_VERSION }}-4+ubuntu22.04_all.deb
+          sudo apt update && sudo apt install -y zabbix-agent
+      - name: Prepare environment
+        run: |
+          sudo mkdir -p /var/log/zabbix/
+          sudo chown -R zabbix. /var/log/zabbix/
+      - name: Start Zabbix agent
+        run: |
+          sudo zabbix_agentd -c /etc/zabbix/zabbix_agentd.conf
+      - name: Install python3
+        run: | 
+          sudo apt-get install -y python3 python3-pip python-is-python3
+          pip install typing-extensions>=4.0.0
+      - name: Integration test
+        continue-on-error: true
+        run: |
+            python ./.github/scripts/$TEST_FILE 2>/tmp/integration.log >/dev/null
+      - name: Send report
+        env:
+          TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
+          TBOT_CHAT: ${{ vars.TBOT_CHAT }}
+          SUBJECT: Zabbix get integration test FAIL
+        run: tail -n1 /tmp/integration.log | grep "OK" 1>/dev/null || tail /tmp/integration.log | python ./.github/scripts/telegram_msg.py | exit 1
