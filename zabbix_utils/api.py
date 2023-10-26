@@ -23,6 +23,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 import re
+import ssl
 import json
 import base64
 import logging
@@ -257,7 +258,7 @@ class ZabbixAPI():
         if kwargs.get('timeout'):
             self.timeout = kwargs['timeout']
 
-        if kwargs.get('validate_certs'):
+        if 'validate_certs' in kwargs:
             self.validate_certs = kwargs['validate_certs']
 
         self._version = self.api_version()
@@ -482,13 +483,19 @@ class ZabbixAPI():
         req.add_header('Content-Type', 'application/json-rpc')
         req.add_header('User-Agent', f"{__name__}/{__version__}")
         req.timeout = self.timeout
-        req.validate_certs = self.validate_certs
+
+        if not self.validate_certs:
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+        else:
+            ctx = None
 
         if self.use_basic:
             req.add_header("Authorization", f"Basic {self.basic_cred}")
 
         try:
-            resp = ul.urlopen(req)
+            resp = ul.urlopen(req, context=ctx)
             resp_json = json.loads(resp.read().decode('utf-8'))
         except URLError as err:
             raise ProcessingException(f"Unable to connect to {self.url}:", err) from None
