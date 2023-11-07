@@ -1,0 +1,87 @@
+name: additional_tests
+run-name: Run additional tests for API features
+
+on:
+  #push:
+  #  branches: [main]
+  #pull_request:
+  #  branches: [main]
+  workflow_dispatch:
+
+env:
+  ZABBIX_BRANCH: master
+  CONFIG_PATH: .github/configs/
+  TEST_FILE: additional_api_tests.py
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install packages
+        run: |
+          sudo apt update && sudo apt install -y git sudo nginx gcc make automake pkg-config postgresql-14 libpostgresql-ocaml-dev libxml2-dev libpcre3-dev libevent-dev apache2 libapache2-mod-php php8.1-pgsql php8.1-bcmath php8.1-xml php8.1-gd php8.1-ldap php8.1-mbstring libzip-dev
+      - name: Build from sources
+        run: |
+          WORKDIR=$(pwd)
+          cd /tmp/
+          git -c advice.detachedHead=false clone https://git.zabbix.com/scm/zbx/zabbix.git --branch ${{ env.ZABBIX_BRANCH }} --depth 1 --single-branch /tmp/zabbix-branch
+          cd /tmp/zabbix-branch
+          ./bootstrap.sh
+          ./configure --enable-server --with-postgresql
+          sudo make dbschema_postgresql
+          echo -e "CacheUpdateFrequency=1\n" >> ./conf/zabbix_server.conf
+          sudo mkdir -p /etc/nginx/ssl/
+          sudo cp $WORKDIR/${{ env.CONFIG_PATH }}/.htpasswd /etc/nginx/.htpasswd
+          sudo cp $WORKDIR/${{ env.CONFIG_PATH }}/nginx.crt /etc/nginx/ssl/nginx.crt
+          sudo cp $WORKDIR/${{ env.CONFIG_PATH }}/nginx.key /etc/nginx/ssl/nginx.key
+          sudo cp $WORKDIR/${{ env.CONFIG_PATH }}/default.conf /etc/nginx/sites-enabled/default
+          sudo chown -R www-data:www-data /etc/nginx/
+          cd ui
+          sudo rm /var/www/html/index.html
+          sudo cp -a . /var/www/html/
+          sudo cp $WORKDIR/${{ env.CONFIG_PATH }}/zabbix.conf.php /var/www/html/conf/
+          sudo cp $WORKDIR/${{ env.CONFIG_PATH }}/pg_hba.conf /etc/postgresql/14/main/pg_hba.conf
+          sudo chown -R www-data:www-data /var/www/html/
+          sudo sed -i "s/post_max_size = 8M/post_max_size = 16M/g" /etc/php/8.1/apache2/php.ini
+          sudo sed -i "s/max_execution_time = 30/max_execution_time = 300/g" /etc/php/8.1/apache2/php.ini
+          sudo sed -i "s/max_input_time = 60/max_input_time = 300/g" /etc/php/8.1/apache2/php.ini
+          sudo sed -i "s/Listen 80/Listen 8080/g" /etc/apache2/ports.conf
+          sudo sed -i "s/<VirtualHost \*\:80>/<VirtualHost *:8080>/g" /etc/apache2/sites-enabled/000-default.conf
+          sudo locale-gen en_US.UTF-8
+          sudo update-locale
+      - name: Prepare environment
+        run: |
+          sudo addgroup --system --quiet zabbix
+          sudo adduser --quiet --system --disabled-login --ingroup zabbix --home /var/lib/zabbix --no-create-home zabbix
+          sudo mkdir -p /var/run/postgresql/14-main.pg_stat_tmp
+          sudo touch /var/run/postgresql/14-main.pg_stat_tmp/global.tmp
+          sudo chmod 0777 /var/run/postgresql/14-main.pg_stat_tmp/global.tmp
+          (sudo -u postgres /usr/lib/postgresql/14/bin/postgres -D /var/lib/postgresql/14/main -c config_file=/etc/postgresql/14/main/postgresql.conf)&
+          sleep 5
+          cd /tmp/zabbix-branch/database/postgresql
+          sudo -u postgres createuser zabbix
+          sudo -u postgres createdb -O zabbix -E Unicode -T template0 zabbix
+          cat schema.sql | sudo -u zabbix psql zabbix
+          cat images.sql | sudo -u zabbix psql zabbix
+          cat data.sql | sudo -u zabbix psql zabbix 
+      - name: Start Apache & Nginx
+        run: |
+          sudo apache2ctl start
+          sudo nginx -g "daemon on; master_process on;"
+      - name: Install python3
+        run: | 
+          sudo apt-get install -y python3 python3-pip python-is-python3
+          pip install typing-extensions>=4.0.0
+      - name: Additional tests
+        continue-on-error: true
+        run: |
+            sleep 5
+            python ./.github/scripts/$TEST_FILE 2>/tmp/additional.log >/dev/null
+      - name: Send report
+        env:
+          TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
+          TBOT_CHAT: ${{ vars.TBOT_CHAT }}
+          SUBJECT: Zabbix API integration test FAIL
+        run: tail -n1 /tmp/additional.log | grep "OK" 1>/dev/null || tail /tmp/additional.log | python ./.github/scripts/telegram_msg.py | exit 1
