@@ -462,12 +462,15 @@ class ZabbixAPI():
         req = ul.Request(self.url)
 
         if need_auth and self.session_id:
-            if self._version < 6.4:
+            if self._version < 6.4 or self.use_basic:
                 request_json['auth'] = self.session_id
             else:
                 req.add_header("Authorization", f"Bearer {self.session_id}")
         elif need_auth:
             raise ProcessingException("You're not logged in Zabbix API")
+
+        if self.use_basic:
+            req.add_header("Authorization", f"Basic {self.basic_cred}")
 
         data = json.dumps(request_json)
 
@@ -490,9 +493,6 @@ class ZabbixAPI():
             ctx.verify_mode = ssl.CERT_NONE
         else:
             ctx = None
-
-        if self.use_basic:
-            req.add_header("Authorization", f"Basic {self.basic_cred}")
 
         try:
             resp = ul.urlopen(req, context=ctx)
