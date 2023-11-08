@@ -23,7 +23,7 @@
 Supported versions:
 
 * Zabbix 5.0+
-* Python 3.10+
+* Python 3.8+
 
 Tested on:
 
@@ -44,7 +44,7 @@ $ pip install zabbix_utils
 
 ##### To work with Zabbix API
 
-To work with Zabbix API  you can import and use **zabbix_utils** library as follows:
+To work with Zabbix API you can import and use **zabbix_utils** library as follows:
 
 ```python
 from zabbix_utils import ZabbixAPI
@@ -80,6 +80,9 @@ for user in users:
 api.logout()
 ```
 
+It is possible to specify authentication fields by the following environment variables:
+`ZABBIX_URL`, `ZABBIX_TOKEN`, `ZABBIX_USER`, `ZABBIX_PASSWORD`
+
 You can compare Zabbix API version with strings and numbers, for example:
 
 ```python
@@ -102,7 +105,6 @@ print(type(ver).__name__, ver) # ZabbixAPIVersion 7.0.0
 # Comparing versions
 print(ver > 6.0)      # True
 print(ver != 7.0)     # False
-print(ver <= 7)       # True
 print(ver != "7.0.0") # False
 
 # Version additional methods
@@ -169,7 +171,7 @@ print(resp)
 
 ### Enabling debug log
 
-If it needed to debug some issue with Zabbix API, sender or get you can enable the output of logging. The **zabbix_utils** library uses the default python logging module, but it logs to the `null` by default. You can define logging handler to see records from the library, for example:
+If it needed to debug some issue with Zabbix API, sender or get you can enable the output of logging. The **zabbix_utils** library uses the default python logging module, but it doesn't log by default. You can define logging handler to see records from the library, for example:
 
 ```python
 import logging
