@@ -3,7 +3,7 @@ import socket
 import unittest
 
 from zabbix_utils.get import ZabbixGet
-from zabbix_utils.exceptions import ProcessingException
+from zabbix_utils.exceptions import ZabbixProcessingException
 
 
 DEFAULT_VALUES = {
@@ -94,20 +94,20 @@ class TestZabbixGet(unittest.TestCase):
             self.assertEqual(agent._ZabbixGet__get_response(conn), case['output'],
                              f"unexpected output with input data: {case['input']}")
 
-        with self.assertRaises(ProcessingException,
-                               msg="expected ProcessingException exception hasn't been raised"):
+        with self.assertRaises(ZabbixProcessingException,
+                               msg="expected ZabbixProcessingException exception hasn't been raised"):
             agent = ZabbixGet()
             conn = ConnectTest(b'test')
             agent._ZabbixGet__get_response(conn)
 
-        with self.assertRaises(ProcessingException,
-                               msg="expected ProcessingException exception hasn't been raised"):
+        with self.assertRaises(ZabbixProcessingException,
+                               msg="expected ZabbixProcessingException exception hasn't been raised"):
             agent = ZabbixGet()
             conn = ConnectTest(b'ZBXD\x04\x04\x00\x00\x00\x04\x00\x00\x00test')
             agent._ZabbixGet__get_response(conn)
 
-        with self.assertRaises(ProcessingException,
-                               msg="expected ProcessingException exception hasn't been raised"):
+        with self.assertRaises(ZabbixProcessingException,
+                               msg="expected ZabbixProcessingException exception hasn't been raised"):
             agent = ZabbixGet()
             conn = ConnectTest(b'ZBXD\x05\x04\x00\x00\x00\x04\x00\x00\x00test')
             agent._ZabbixGet__get_response(conn)

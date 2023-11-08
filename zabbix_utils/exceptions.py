@@ -57,7 +57,7 @@ class ZabbixAPINotSupported(Exception):
         super().__init__(message)
 
 
-class ProcessingException(Exception):
+class ZabbixProcessingException(Exception):
     def __init__(self, *args):
         super().__init__(" ".join(map(str, args)))
         return

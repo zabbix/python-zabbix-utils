@@ -42,7 +42,7 @@ except ImportError:
 
 from .utils import ZabbixAPIUtils
 from .logger import EmptyHandler, SensitiveFilter
-from .exceptions import ZabbixAPIException, ZabbixAPINotSupported, ProcessingException
+from .exceptions import ZabbixAPIException, ZabbixAPINotSupported, ZabbixProcessingException
 from .version import __version__, __min_supported__, __max_supported__
 
 
@@ -356,7 +356,7 @@ class ZabbixAPI():
                 version=self._version
             )
         if (not (token or (user and password))) or (token and user and password):
-            raise ProcessingException(
+            raise ZabbixProcessingException(
                 "Either a token or a user and a password must be specified")
 
         self._token = token
@@ -418,7 +418,7 @@ class ZabbixAPI():
             need_auth (bool, optional): Authorization using flag. Defaults to `False`.
 
         Raises:
-            ProcessingException: Wrapping built-in exceptions during request processing.
+            ZabbixProcessingException: Wrapping built-in exceptions during request processing.
 
             ZabbixAPIException: Wrapping errors from Zabbix API.
 
@@ -441,7 +441,7 @@ class ZabbixAPI():
             else:
                 req.add_header("Authorization", f"Bearer {self.session_id}")
         elif need_auth:
-            raise ProcessingException("You're not logged in Zabbix API")
+            raise ZabbixProcessingException("You're not logged in Zabbix API")
 
         if self.use_basic:
             req.add_header("Authorization", f"Basic {self.basic_cred}")
@@ -472,9 +472,9 @@ class ZabbixAPI():
             resp = ul.urlopen(req, context=ctx)
             resp_json = json.loads(resp.read().decode('utf-8'))
         except URLError as err:
-            raise ProcessingException(f"Unable to connect to {self.url}:", err) from None
+            raise ZabbixProcessingException(f"Unable to connect to {self.url}:", err) from None
         except ValueError as err:
-            raise ProcessingException("Unable to parse json:", err) from None
+            raise ZabbixProcessingException("Unable to parse json:", err) from None
 
         if method not in ZabbixAPIUtils.FILES_METHODS:
             log.debug(

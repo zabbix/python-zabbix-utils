@@ -32,7 +32,7 @@ from decimal import Decimal
 from typing import Callable, Union
 
 from .logger import EmptyHandler
-from .exceptions import ProcessingException
+from .exceptions import ZabbixProcessingException
 
 log = logging.getLogger(__name__)
 log.addHandler(EmptyHandler())
@@ -68,7 +68,7 @@ class ZabbixResponse():
             response (dict): Raw response from Zabbix.
 
         Raises:
-            ProcessingException: Raises if unexpected response received
+            ZabbixProcessingException: Raises if unexpected response received
         """
 
         fields = {
@@ -85,7 +85,7 @@ class ZabbixResponse():
         info = response.get('info')
         if not info:
             log.debug('Received unexpected response: %s', response)
-            raise ProcessingException(f"Received unexpected response: {response}")
+            raise ZabbixProcessingException(f"Received unexpected response: {response}")
 
         res = pattern.search(info).groupdict()
         res['chunk'] = str(self.__chunk)
@@ -360,7 +360,7 @@ class ZabbixSender():
         if (not response_header.startswith(b'ZBXD') or
                 len(response_header) != header_size):
             log.debug('Unexpected response was received from Zabbix.')
-            raise ProcessingException('Unexpected response was received from Zabbix.')
+            raise ZabbixProcessingException('Unexpected response was received from Zabbix.')
         else:
             flags, datalen, reserved = struct.unpack('<BII', response_header[4:])
             if flags == 0x01:
@@ -368,12 +368,12 @@ class ZabbixSender():
             elif flags == 0x02:
                 response_len = reserved
             elif flags == 0x04:
-                raise ProcessingException(
+                raise ZabbixProcessingException(
                     'A large packet flag was received. '
                     'Current module doesn\'t support large packets.'
                 )
             else:
-                raise ProcessingException(
+                raise ZabbixProcessingException(
                     'Unexcepted flags were received. '
                     'Check debug log for more information.'
                 )
@@ -436,7 +436,7 @@ class ZabbixSender():
                     else:
                         connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 except socket.error:
-                    raise ProcessingException(f"Error creating socket for {node}") from None
+                    raise ZabbixProcessingException(f"Error creating socket for {node}") from None
 
                 connection.settimeout(self.timeout)
 
@@ -468,7 +468,7 @@ class ZabbixSender():
                     str(list(cluster.nodes))
                 )
                 connection.close()
-                raise ProcessingException(
+                raise ZabbixProcessingException(
                     f"Couldn't connect to all of cluster nodes: {list(cluster.nodes)}"
                 )
 

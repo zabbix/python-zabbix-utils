@@ -28,7 +28,7 @@ import logging
 from typing import Callable, Union
 
 from .logger import EmptyHandler
-from .exceptions import ProcessingException
+from .exceptions import ZabbixProcessingException
 
 log = logging.getLogger(__name__)
 log.addHandler(EmptyHandler())
@@ -107,7 +107,7 @@ class ZabbixGet():
         if (not response_header.startswith(b'ZBXD') or
                 len(response_header) != header_size):
             log.debug('Unexpected response was received from Zabbix.')
-            raise ProcessingException('Unexpected response was received from Zabbix.')
+            raise ZabbixProcessingException('Unexpected response was received from Zabbix.')
         else:
             flags, datalen, reserved = struct.unpack('<BII', response_header[4:])
             if flags == 0x01:
@@ -115,12 +115,12 @@ class ZabbixGet():
             elif flags == 0x02:
                 response_len = reserved
             elif flags == 0x04:
-                raise ProcessingException(
+                raise ZabbixProcessingException(
                     'A large packet flag was received. '
                     'Current module doesn\'t support large packets.'
                 )
             else:
-                raise ProcessingException(
+                raise ZabbixProcessingException(
                     'Unexcepted flags were received. '
                     'Check debug log for more information.'
                 )
@@ -146,7 +146,7 @@ class ZabbixGet():
             else:
                 connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         except socket.error:
-            raise ProcessingException(
+            raise ZabbixProcessingException(
                 f"Error creating socket for {self.host}:{self.port}") from None
 
         connection.settimeout(self.timeout)

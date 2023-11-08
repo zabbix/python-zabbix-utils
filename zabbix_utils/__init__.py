@@ -25,7 +25,7 @@
 from .api import ZabbixAPI, ZabbixAPIVersion
 from .sender import ZabbixSender, ZabbixItem
 from .get import ZabbixGet
-from .exceptions import ZabbixAPIException, ZabbixAPINotSupported, ProcessingException
+from .exceptions import ZabbixAPIException, ZabbixAPINotSupported, ZabbixProcessingException
 
 __all__ = (
     'ZabbixAPI',
@@ -35,5 +35,5 @@ __all__ = (
     'ZabbixGet',
     'ZabbixAPIException',
     'ZabbixAPINotSupported',
-    'ProcessingException'
+    'ZabbixProcessingException'
 )

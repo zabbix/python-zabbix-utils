@@ -5,7 +5,7 @@ import configparser
 from unittest.mock import patch
 
 from zabbix_utils.sender import ZabbixSender, ZabbixCluster, ZabbixItem
-from zabbix_utils.exceptions import ProcessingException
+from zabbix_utils.exceptions import ZabbixProcessingException
 
 
 DEFAULT_VALUES = {
@@ -175,20 +175,20 @@ class TestZabbixSender(unittest.TestCase):
             conn = ConnectTest(b'ZBXD\x01\x04\x00\x00\x00\x04\x00\x00\x00test')
             sender._ZabbixSender__get_response(conn)
 
-        with self.assertRaises(ProcessingException,
-                               msg="expected ProcessingException exception hasn't been raised"):
+        with self.assertRaises(ZabbixProcessingException,
+                               msg="expected ZabbixProcessingException exception hasn't been raised"):
             sender = ZabbixSender()
             conn = ConnectTest(b'test')
             sender._ZabbixSender__get_response(conn)
 
-        with self.assertRaises(ProcessingException,
-                               msg="expected ProcessingException exception hasn't been raised"):
+        with self.assertRaises(ZabbixProcessingException,
+                               msg="expected ZabbixProcessingException exception hasn't been raised"):
             sender = ZabbixSender()
             conn = ConnectTest(b'ZBXD\x04\x04\x00\x00\x00\x04\x00\x00\x00test')
             sender._ZabbixSender__get_response(conn)
 
-        with self.assertRaises(ProcessingException,
-                               msg="expected ProcessingException exception hasn't been raised"):
+        with self.assertRaises(ZabbixProcessingException,
+                               msg="expected ZabbixProcessingException exception hasn't been raised"):
             sender = ZabbixSender()
             conn = ConnectTest(b'ZBXD\x05\x04\x00\x00\x00\x04\x00\x00\x00test')
             sender._ZabbixSender__get_response(conn)
@@ -264,8 +264,8 @@ class TestZabbixSender(unittest.TestCase):
 
         with patch.multiple(ZabbixSender,
                             _ZabbixSender__chunk_send=mock_chunk_send_empty):
-            with self.assertRaises(ProcessingException,
-                                   msg="expected ProcessingException exception hasn't been raised"):
+            with self.assertRaises(ZabbixProcessingException,
+                                   msg="expected ZabbixProcessingException exception hasn't been raised"):
                 sender = ZabbixSender()
                 resp = sender.send_value('test', 'test', 1)    
 

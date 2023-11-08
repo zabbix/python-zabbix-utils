@@ -5,7 +5,7 @@ from unittest.mock import patch
 from zabbix_utils.api import ZabbixAPI, ZabbixAPIVersion
 from zabbix_utils.utils import ZabbixAPIUtils
 from zabbix_utils.version import __min_supported__, __max_supported__
-from zabbix_utils.exceptions import ZabbixAPINotSupported, ProcessingException
+from zabbix_utils.exceptions import ZabbixAPINotSupported, ZabbixProcessingException
 
 
 DEFAULT_VALUES = {
@@ -50,25 +50,25 @@ class TestZabbixAPI(unittest.TestCase):
             {
                 'input': {'token': DEFAULT_VALUES['token']},
                 'output': DEFAULT_VALUES['token'],
-                'exception': ProcessingException,
+                'exception': ZabbixProcessingException,
                 'raised': False
             },
             {
                 'input': {'token': DEFAULT_VALUES['token'], 'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
                 'output': DEFAULT_VALUES['token'],
-                'exception': ProcessingException,
+                'exception': ZabbixProcessingException,
                 'raised': True
             },
             {
                 'input': {'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
                 'output': 'cc364fb50199c5e305aa91785b7e49a0',
-                'exception': ProcessingException,
+                'exception': ZabbixProcessingException,
                 'raised': False
             },
             {
                 'input': {},
                 'output': None,
-                'exception': ProcessingException,
+                'exception': ZabbixProcessingException,
                 'raised': True
             }
         ]
@@ -87,7 +87,7 @@ class TestZabbixAPI(unittest.TestCase):
                 with ZabbixAPI() as zapi:
                     try:
                         zapi.login(**case['input'])
-                    except ProcessingException:
+                    except ZabbixProcessingException:
                         if not case['raised']:
                             self.fail(f"raised unexpected Exception with input data: {case['input']}")
                     else:
