@@ -104,7 +104,7 @@ class ZabbixAPIVersion():
 
     def __init__(self, apiver: str):
         self.__raw = apiver
-        self.first, self.second, self.third, self.text = self.__parse_version(self.__raw)
+        self.first, self.second, self.third = self.__parse_version(self.__raw)
 
     def __getitem__(self, index: int) -> Any:
         return self.__raw[index]
@@ -115,9 +115,6 @@ class ZabbixAPIVersion():
         Returns:
             bool: `True` if the current version is LTS.
         """
-
-        if len(self.text) > 0:
-            return False
 
         return self.second == 0
 
@@ -145,25 +142,12 @@ class ZabbixAPIVersion():
         regexp = r"(\d+)\.(\d+)\.(\d+).*"
         try:
             result = list(map(int, re.search(regexp, ver).groups()))
-            result.append(re.sub(r'[0-9.]', '', ver))
             return result
         except AttributeError:
             raise TypeError(
-                f"Unable to parse the got version of Zabbix API: {ver}. " +
+                f"Unable to parse version of Zabbix API: {ver}. " +
                 f"Default '{__max_supported__}.0' format is expected."
             ) from None
-
-    def __compare(self, others: list, opr: str) -> bool:
-        result = False
-        values = [self.first, self.second, self.third, self.text]
-        if len(values) != len(others):
-            raise TypeError(
-                f"'{opr}' not supported between instances with different length"
-            )
-        while len(values) > 0:
-            result = (getattr(values.pop(0), f"__{opr}__")(others.pop(0)))
-
-        return result
 
     def __str__(self) -> str:
         return self.__raw
@@ -171,36 +155,30 @@ class ZabbixAPIVersion():
     def __repr__(self) -> str:
         return self.__raw
 
-    def __eq__(self, other: Union[float, int, str]) -> bool:
+    def __eq__(self, other: Union[float, str]) -> bool:
         if isinstance(other, float):
             return self.major == other
-        if isinstance(other, int):
-            return self.first == other
 
         return str(self.__parse_version(self.__raw)) == str(self.__parse_version(other))
 
-    def __gt__(self, other: Union[float, int, str]) -> bool:
+    def __gt__(self, other: Union[float, str]) -> bool:
         if isinstance(other, float):
             return self.major > other
-        if isinstance(other, int):
-            return self.first > other
         if isinstance(other, str):
-            return self.__compare(self.__parse_version(other)[:], 'gt')
+            return [self.first, self.second, self.third] > self.__parse_version(other)
         raise TypeError(
             f"'>' not supported between instances of '{type(self).__name__}' and \
-'{type(other).__name__}', only 'float','int' or 'str' is expected"
+'{type(other).__name__}', only 'float' or 'str' is expected"
         )
 
-    def __lt__(self, other: Union[float, int, str]) -> bool:
+    def __lt__(self, other: Union[float, str]) -> bool:
         if isinstance(other, float):
             return self.major < other
-        if isinstance(other, int):
-            return self.first < other
         if isinstance(other, str):
-            return self.__compare(self.__parse_version(other)[:], 'lt')
+            return [self.first, self.second, self.third] < self.__parse_version(other)
         raise TypeError(
             f"'<' not supported between instances of '{type(self).__name__}' and \
-'{type(other).__name__}', only 'float','int' or 'str' is expected"
+'{type(other).__name__}', only 'float' or 'str' is expected"
         )
 
     def __ne__(self, other: Any) -> bool:
@@ -217,15 +195,13 @@ class ZabbixAPI():
     """Provide interface for working with Zabbix API.
 
     Args:
-        url (str, optional): Zabbix API URL. Defaults to `None`.
+        url (str, optional): Zabbix API URL. Defaults to `http://localhost/zabbix/api_jsonrpc.php`.
 
         token (str, optional): Zabbix API token. Defaults to `None`.
 
         user (str, optional): Zabbix API username. Defaults to `None`.
 
         password (str, optional): Zabbix API user's password. Defaults to `None`.
-
-        timeout (int, optional): Connection timeout to Zabbix API. Defaults to `30`.
 
         http_user (str, optional): Basic Authentication username. Defaults to `None`.
 
@@ -234,37 +210,34 @@ class ZabbixAPI():
         skip_version_check (bool, optional): Skip version compatibility check. Defaults to `False`.
 
         validate_certs (bool, optional): Specifying certificate validation. Defaults to `True`.
+
+        timeout (int, optional): Connection timeout to Zabbix API. Defaults to `30`.
     """
 
     def __init__(self, url: Union[str, None] = None, token: Union[str, None] = None,
-                 user: Union[str, None] = None, password: Union[str, None] = None, **kwargs: Any):
+                 user: Union[str, None] = None, password: Union[str, None] = None,
+                 http_user: Union[str, None] = None, http_password: Union[str, None] = None,
+                 skip_version_check: bool = False, validate_certs: bool = True, timeout: int = 30):
 
         url = url or env.get('ZABBIX_URL') or 'http://localhost/zabbix/api_jsonrpc.php'
         user = user or env.get('ZABBIX_USER') or None
         password = password or env.get('ZABBIX_PASSWORD') or None
 
+        self._token = token or env.get('ZABBIX_TOKEN') or None
         self.url = ZabbixAPIUtils.check_url(url)
-        self._token = token
-        self.timeout = 30
+        self.validate_certs = validate_certs
+        self.timeout = timeout
         self.session_id = None
         self.use_basic = False
         self.basic_cred = None
-        self.validate_certs = True
-        self.skip_version_check = False
 
-        if kwargs.get('http_user') and kwargs.get('http_password'):
-            self.basic_auth(kwargs['http_user'], kwargs['http_password'])
-
-        if kwargs.get('timeout'):
-            self.timeout = kwargs['timeout']
-
-        if 'validate_certs' in kwargs:
-            self.validate_certs = kwargs['validate_certs']
+        if http_user and http_password:
+            self.basic_auth(http_user, http_password)
 
         self._version = self.api_version()
 
         # Check version compatibility
-        self.__check_version(**kwargs)
+        self.__check_version(skip_version_check)
 
         if self._version < 5.4 and self._token and not (user and password):
             raise ZabbixAPINotSupported(
@@ -377,13 +350,14 @@ class ZabbixAPI():
             ZabbixAPI: Zabbix API instance.
         """
 
-        if self._version < 5.4 and token and not (user and password):
+        if self._version < 5.4 and token:
             raise ZabbixAPINotSupported(
                 message="Token usage",
                 version=self._version
             )
-        if not (token or (user and password)):
-            raise ProcessingException("Either a token or a user and a password must be specified")
+        if (not (token or (user and password))) or (token and user and password):
+            raise ProcessingException(
+                "Either a token or a user and a password must be specified")
 
         self._token = token
         self.__login(user, password)
@@ -523,12 +497,9 @@ class ZabbixAPI():
 
         return resp_json
 
-    def __check_version(self, **kwargs: Any) -> None:
-        if kwargs.get('skip_version_check'):
-            self.skip_version_check = bool(kwargs.get('skip_version_check', False))
-
+    def __check_version(self, skip_check: bool) -> None:
         if self._version < __min_supported__:
-            if self.skip_version_check:
+            if skip_check:
                 log.debug(
                     "Version of Zabbix API [%s] is less than the library supports. %s",
                     self._version,
@@ -541,7 +512,7 @@ class ZabbixAPI():
                 )
 
         if self._version > __max_supported__:
-            if self.skip_version_check:
+            if skip_check:
                 log.debug(
                     "Version of Zabbix API [%s] is more than the library was tested on. %s",
                     self._version,

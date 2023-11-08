@@ -57,7 +57,7 @@ class TestZabbixAPI(unittest.TestCase):
                 'input': {'token': DEFAULT_VALUES['token'], 'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
                 'output': DEFAULT_VALUES['token'],
                 'exception': ProcessingException,
-                'raised': False
+                'raised': True
             },
             {
                 'input': {'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
@@ -285,22 +285,20 @@ class TestZabbixAPIVersion(unittest.TestCase):
         """Tests getting the minor version part of ZabbixAPIVersion"""
 
         test_cases = [
-            {'input': '6.0.10alpha', 'output': 10, 'text': 'alpha'},
-            {'input': '6.2.0', 'output': 0, 'text': ''}
+            {'input': '6.0.10alpha', 'output': 10},
+            {'input': '6.2.0', 'output': 0}
         ]
 
         for case in test_cases:
             ver = ZabbixAPIVersion(case['input'])
             self.assertEqual(ver.minor, case['output'],
                              f"unexpected output with input data: {case['input']}")
-            self.assertEqual(ver.text, case['text'],
-                             f"unexpected output with input data: {case['input']}")
 
     def test_is_lts(self):
         """Tests is_lts method for different versions"""
 
         test_cases = [
-            {'input': '6.0.10alpha', 'output': False},
+            {'input': '6.0.10alpha', 'output': True},
             {'input': '6.2.0', 'output': False},
             {'input': '6.4.5', 'output': False},
             {'input': '7.0.0', 'output': True},
@@ -317,10 +315,10 @@ class TestZabbixAPIVersion(unittest.TestCase):
 
         test_cases = [
             {'input': ['6.0.0','6.0.0'], 'operation': 'eq', 'output': True},
-            {'input': ['6.0.0',6], 'operation': 'ne', 'output': False},
+            {'input': ['6.0.0',6.0], 'operation': 'ne', 'output': False},
             {'input': ['6.0.0',6.0], 'operation': 'ge', 'output': True},
             {'input': ['6.0.0',7.0], 'operation': 'lt', 'output': True},
-            {'input': ['6.4.1',6], 'operation': 'gt', 'output': False}
+            {'input': ['6.4.1',6.4], 'operation': 'gt', 'output': False}
         ]
 
         for case in test_cases:
@@ -337,6 +335,14 @@ class TestZabbixAPIVersion(unittest.TestCase):
         with self.assertRaises(TypeError,
                                msg=f"input data={case['input']}"):
             ver < []
+
+        with self.assertRaises(TypeError,
+                               msg=f"input data={case['input']}"):
+            ver < 6
+
+        with self.assertRaises(TypeError,
+                               msg=f"input data={case['input']}"):
+            ver != 7
 
         with self.assertRaises(TypeError,
                                msg=f"input data={case['input']}"):
