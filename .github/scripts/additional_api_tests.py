@@ -37,7 +37,7 @@ class IntegrationAPITest(unittest.TestCase):
             type(self.api.api_version()), ZabbixAPIVersion, "Version getting was going wrong")
 
     def test_basic_auth(self):
-        """Tests basic_auth function works properly"""
+        """Tests __basic_auth function works properly"""
 
         self.assertEqual(
             self.api.use_basic, True, "Basic auth was going wrong")

@@ -55,7 +55,19 @@ class TestZabbixAPI(unittest.TestCase):
             },
             {
                 'input': {'token': DEFAULT_VALUES['token'], 'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
-                'output': DEFAULT_VALUES['token'],
+                'output': None,
+                'exception': ZabbixProcessingException,
+                'raised': True
+            },
+            {
+                'input': {'token': DEFAULT_VALUES['token'], 'user': DEFAULT_VALUES['user']},
+                'output': None,
+                'exception': ZabbixProcessingException,
+                'raised': True
+            },
+            {
+                'input': {'token': DEFAULT_VALUES['token'], 'password': DEFAULT_VALUES['password']},
+                'output': None,
                 'exception': ZabbixProcessingException,
                 'raised': True
             },
@@ -64,6 +76,18 @@ class TestZabbixAPI(unittest.TestCase):
                 'output': 'cc364fb50199c5e305aa91785b7e49a0',
                 'exception': ZabbixProcessingException,
                 'raised': False
+            },
+            {
+                'input': {'user': DEFAULT_VALUES['user']},
+                'output': None,
+                'exception': ZabbixProcessingException,
+                'raised': True
+            },
+            {
+                'input': {'password': DEFAULT_VALUES['password']},
+                'output': None,
+                'exception': ZabbixProcessingException,
+                'raised': True
             },
             {
                 'input': {},
@@ -78,25 +102,30 @@ class TestZabbixAPI(unittest.TestCase):
                     ZabbixAPI,
                     send_api_request=mock_send_api_request):
 
-                zapi = ZabbixAPI(**case['input'])
-                self.assertEqual(zapi.session_id, case['output'],
-                                 f"unexpected output with input data: {case['input']}")
-                self.assertEqual(zapi._token, case['input'].get('token'),
+                try:
+                    zapi = ZabbixAPI(**case['input'])
+                except case['exception']:
+                    if not case['raised']:
+                        self.fail(f"raised unexpected Exception with input data: {case['input']}")
+                else:
+                    self.assertEqual(zapi._ZabbixAPI__use_token, bool(case['input'].get('token')),
+                                    f"unexpected output with input data: {case['input']}")
+                self.assertEqual(zapi._ZabbixAPI__session_id, case['output'],
                                  f"unexpected output with input data: {case['input']}")
 
                 with ZabbixAPI() as zapi:
                     try:
                         zapi.login(**case['input'])
-                    except ZabbixProcessingException:
+                    except case['exception']:
                         if not case['raised']:
                             self.fail(f"raised unexpected Exception with input data: {case['input']}")
                     else:
                         if case['raised']:
                             self.fail(f"not raised expected Exception with input data: {case['input']}")
 
-                        self.assertEqual(zapi.session_id, case['output'],
+                        self.assertEqual(zapi._ZabbixAPI__session_id, case['output'],
                                         f"unexpected output with input data: {case['input']}")
-                        self.assertEqual(zapi._token, case['input'].get('token'),
+                        self.assertEqual(zapi._ZabbixAPI__use_token, bool(case['input'].get('token')),
                                         f"unexpected output with input data: {case['input']}")
 
     def test_logout(self):
@@ -105,15 +134,21 @@ class TestZabbixAPI(unittest.TestCase):
         test_cases = [
             {
                 'input': {'token': DEFAULT_VALUES['token']},
-                'output': None
+                'output': None,
+                'exception': ZabbixProcessingException,
+                'raised': False
             },
             {
                 'input': {'token': DEFAULT_VALUES['token'], 'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
-                'output': None
+                'output': None,
+                'exception': ZabbixProcessingException,
+                'raised': True
             },
             {
                 'input': {'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
-                'output': None
+                'output': None,
+                'exception': ZabbixProcessingException,
+                'raised': False
             }
         ]
 
@@ -122,11 +157,13 @@ class TestZabbixAPI(unittest.TestCase):
                 ZabbixAPI,
                 send_api_request=mock_send_api_request):
 
-                zapi = ZabbixAPI(**case['input'])
+                try:
+                    zapi = ZabbixAPI(**case['input'])
+                except case['exception']:
+                    if not case['raised']:
+                        self.fail(f"raised unexpected Exception with input data: {case['input']}")
                 zapi.logout()
-                self.assertEqual(zapi.session_id, case['output'],
-                                 f"unexpected output with input data: {case['input']}")
-                self.assertEqual(zapi._token, case['output'],
+                self.assertEqual(zapi._ZabbixAPI__session_id, case['output'],
                                  f"unexpected output with input data: {case['input']}")
 
     def test_check_auth(self):
@@ -135,15 +172,21 @@ class TestZabbixAPI(unittest.TestCase):
         test_cases = [
             {
                 'input': {'token': DEFAULT_VALUES['token']},
-                'output': True
+                'output': {'login': True, 'logout': False},
+                'exception': ZabbixProcessingException,
+                'raised': False
             },
             {
                 'input': {'token': DEFAULT_VALUES['token'], 'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
-                'output': True
+                'output': {'login': False, 'logout': False},
+                'exception': ZabbixProcessingException,
+                'raised': True
             },
             {
                 'input': {'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
-                'output': True
+                'output': {'login': True, 'logout': False},
+                'exception': ZabbixProcessingException,
+                'raised': False
             }
         ]
 
@@ -152,13 +195,17 @@ class TestZabbixAPI(unittest.TestCase):
                 ZabbixAPI,
                 send_api_request=mock_send_api_request):
 
-                zapi = ZabbixAPI(**case['input'])
+                try:
+                    zapi = ZabbixAPI(**case['input'])
+                except case['exception']:
+                    if not case['raised']:
+                        self.fail(f"raised unexpected Exception with input data: {case['input']}")
                 auth = zapi.check_auth()
-                self.assertEqual(auth, case['output'],
+                self.assertEqual(auth, case['output']['login'],
                                  f"unexpected output with input data: {case['input']}")
                 zapi.logout()
                 auth = zapi.check_auth()
-                self.assertEqual(auth, not case['output'],
+                self.assertEqual(auth, case['output']['logout'],
                                  f"unexpected output with input data: {case['input']}")
 
     def test_check_version(self):
@@ -197,30 +244,38 @@ class TestZabbixAPI(unittest.TestCase):
             {
                 'input': {'token': DEFAULT_VALUES['token']},
                 'version': '5.2.0',
-                'exception': ZabbixAPINotSupported,
-                'raised': True,
+                'raised': {'ZabbixAPINotSupported': True, 'ZabbixProcessingException': True},
                 'output': DEFAULT_VALUES['session']
             },
             {
                 'input': {'token': DEFAULT_VALUES['token'], 'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
                 'version': '5.2.0',
-                'exception': ZabbixAPINotSupported,
-                'raised': False,
+                'raised': {'ZabbixAPINotSupported': True, 'ZabbixProcessingException': True},
+                'output': DEFAULT_VALUES['session']
+            },
+            {
+                'input': {'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
+                'version': '5.2.0',
+                'raised': {'ZabbixAPINotSupported': False, 'ZabbixProcessingException': False},
                 'output': DEFAULT_VALUES['session']
             },
             {
                 'input': {'token': DEFAULT_VALUES['token']},
                 'version': '5.4.0',
-                'exception': ZabbixAPINotSupported,
-                'raised': False,
+                'raised': {'ZabbixAPINotSupported': False, 'ZabbixProcessingException': False},
                 'output': DEFAULT_VALUES['token']
             },
             {
                 'input': {'token': DEFAULT_VALUES['token'], 'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
                 'version': '5.4.0',
-                'exception': ZabbixAPINotSupported,
-                'raised': False,
+                'raised': {'ZabbixAPINotSupported': False, 'ZabbixProcessingException': True},
                 'output': DEFAULT_VALUES['token']
+            },
+            {
+                'input': {'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
+                'version': '5.4.0',
+                'raised': {'ZabbixAPINotSupported': False, 'ZabbixProcessingException': False},
+                'output': DEFAULT_VALUES['session']
             }
         ]
 
@@ -232,14 +287,17 @@ class TestZabbixAPI(unittest.TestCase):
 
                 try:
                     zapi = ZabbixAPI(**case['input'])
-                except Exception:
-                    if not case['raised']:
-                        self.fail(f"raised unexpected Exception for version: {case['version']}")
+                except ZabbixProcessingException:
+                    if not case['raised']['ZabbixProcessingException']:
+                        self.fail(f"raised unexpected Exception for version: {case['input']}")
+                except ZabbixAPINotSupported:
+                    if not case['raised']['ZabbixAPINotSupported']:
+                        self.fail(f"raised unexpected Exception for version: {case['input']}")
                 else:
-                    if case['raised']:
+                    if case['raised']['ZabbixProcessingException'] or case['raised']['ZabbixAPINotSupported']:
                         self.fail(f"not raised expected Exception for version: {case['version']}")
 
-                    self.assertEqual(zapi.session_id, case['output'],
+                    self.assertEqual(zapi._ZabbixAPI__session_id, case['output'],
                                          f"unexpected output with input data: {case['input']}")
 
 
@@ -370,64 +428,29 @@ class TestZabbixAPIUtils(unittest.TestCase):
             self.assertEqual(result, case['output'],
                              f"unexpected output with input data: {case['input']}")
 
-    def test_secreter(self):
-        """Tests secreter method in different cases"""
+    def test_mask_secret(self):
+        """Tests mask_secret method in different cases"""
 
-        mask = ZabbixAPIUtils.HIDINGMASK
+        mask = ZabbixAPIUtils.HIDING_MASK
 
         test_cases = [
             {'input': {'string': 'lZSwaQ', 'show_len': 5}, 'output': mask},
             {'input': {'string': 'ZWvaGS5SzNGaR990f', 'show_len': 4}, 'output': f"ZWva{mask}990f"},
-            {'input': {'string': 'KZneJzgRzdlWcUjJj', 'show_len': 10}, 'output': f"KZneJzgRzd{mask}RzdlWcUjJj"},
+            {'input': {'string': 'KZneJzgRzdlWcUjJj', 'show_len': 10}, 'output': mask},
             {'input': {'string': 'g5imzEr7TPcBG47fa', 'show_len': 20}, 'output': mask},
             {'input': {'string': 'In8y4eGughjBNSqEGPcqzejToVUT3OA4q5', 'show_len':2}, 'output': f"In{mask}q5"},
-            {'input': {'string': 'Z8pZom5EVbRZ0W5wz', 'show_len':0}, 'output': "Z8pZom5EVbRZ0W5wz"}
+            {'input': {'string': 'Z8pZom5EVbRZ0W5wz', 'show_len':0}, 'output': mask}
         ]
 
         for case in test_cases:
-            result = ZabbixAPIUtils.secreter(**case['input'])
-            self.assertEqual(result, case['output'],
-                             f"unexpected output with input data: {case['input']}")
-
-    def test_cutter(self):
-        """Tests cutter method in different cases"""
-
-        test_cases = [
-            {
-                'input': {'string': 'ZWvaGS5SzNGaR990f', 'max_len': 4, 'dots': True},
-                'output': 'ZWva...'
-            },
-            {
-                'input': {'string': 'KZneJzgRzdlWcUjJj', 'max_len': 10, 'dots': False},
-                'output': 'KZneJzgRzd'
-            },
-            {
-                'input': {'string': 'g5imzEr7TPcBG47fa', 'max_len': 20, 'dots': True},
-                'output': 'g5imzEr7TPcBG47fa'
-            },
-            {
-                'input': {'string': 'In8y4eGughjBNSqEGPcqzejToVUT3OA4q5', 'max_len':20, 'dots': True},
-                'output': 'In8y4eGughjBNSqEGPcq...'
-            },
-            {
-                'input': {'string': 'Z8pZom5EVbRZ0W5wz', 'max_len': 0, 'dots': True},
-                'output': '...'
-            },
-            {
-                'input': {'string': '0gtRoOSbHLZqYR3BF', 'max_len': 0, 'dots': False},
-                'output': ''
-            }
-        ]
-
-        for case in test_cases:
-            result = ZabbixAPIUtils.cutter(**case['input'])
+            result = ZabbixAPIUtils.mask_secret(**case['input'])
             self.assertEqual(result, case['output'],
                              f"unexpected output with input data: {case['input']}")
 
     def test_hide_private(self):
         """Tests hide_private method in different cases"""
 
-        mask = ZabbixAPIUtils.HIDINGMASK
+        mask = ZabbixAPIUtils.HIDING_MASK
 
         test_cases = [
             {

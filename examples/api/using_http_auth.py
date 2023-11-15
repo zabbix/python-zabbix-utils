@@ -1,12 +1,14 @@
 from zabbix_utils import ZabbixAPI
 
 # Create an instance of the ZabbixAPI class with the Zabbix server URL
-api = ZabbixAPI(url="http://127.0.0.1")
-
 # Set Basic Authentication credentials for Zabbix API requests
 # Basic Authentication - a simple authentication mechanism used in HTTP.
 # It involves sending a username and password with each HTTP request.
-api.basic_auth(user="user", password="p@$sw0rd")
+api = ZabbixAPI(
+    url="http://127.0.0.1",
+    http_user="user",
+    http_password="p@$sw0rd"
+)
 
 # Login to the Zabbix API using provided user credentials
 api.login(user="Admin", password="zabbix")

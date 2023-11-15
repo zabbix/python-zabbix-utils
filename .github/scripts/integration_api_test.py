@@ -46,10 +46,10 @@ class IntegrationAPITest(unittest.TestCase):
 
         resp = None
         if self.zapi:
-            if self.zapi.session_id == self.zapi.token:
-                resp = self.zapi.user.checkAuthentication(token=self.zapi.session_id)
+            if self.zapi._ZabbixAPI__session_id == self.zapi._ZabbixAPI__token:
+                resp = self.zapi.user.checkAuthentication(token=self.zapi._ZabbixAPI__session_id)
             else:
-                resp = self.zapi.user.checkAuthentication(sessionid=self.zapi.session_id)
+                resp = self.zapi.user.checkAuthentication(sessionid=self.zapi._ZabbixAPI__session_id)
         self.assertEqual(
             type(resp), dict, "Request user.checkAuthentication was going wrong")
 

@@ -40,9 +40,9 @@ class CompatibilityAPITest(unittest.TestCase):
             password=self.password
         )
 
-        self.assertIsNotNone(self.zapi.session_id, "Login by user and password was going wrong")
+        self.assertIsNotNone(self.zapi._ZabbixAPI__session_id, "Login by user and password was going wrong")
 
-        resp = self.zapi.user.checkAuthentication(sessionid=self.zapi.session_id)
+        resp = self.zapi.user.checkAuthentication(sessionid=self.zapi._ZabbixAPI__session_id)
 
         self.assertEqual(
             type(resp), dict, "Request user.checkAuthentication was going wrong")
@@ -54,11 +54,11 @@ class CompatibilityAPITest(unittest.TestCase):
 
         self.zapi.logout()
 
-        self.assertIsNone(self.zapi.session_id, "Logout was going wrong")
+        self.assertIsNone(self.zapi._ZabbixAPI__session_id, "Logout was going wrong")
 
         with self.assertRaises(ZabbixAPIException,
                                msg="Request user.checkAuthentication after logout was going wrong"):
-            resp = self.zapi.user.checkAuthentication(sessionid=self.zapi.session_id)
+            resp = self.zapi.user.checkAuthentication(sessionid=self.zapi._ZabbixAPI__session_id)
 
     def test_token_auth(self):
         """Tests auth using token"""
