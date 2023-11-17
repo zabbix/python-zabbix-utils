@@ -2,10 +2,11 @@ name: build
 run-name: Build package
 
 on:
-  #push:
-  #  branches: [main]
-  #pull_request:
-  #  branches: [main]
+  push:
+    branches: [main]
+    tags: [v1.*, v2.*]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:

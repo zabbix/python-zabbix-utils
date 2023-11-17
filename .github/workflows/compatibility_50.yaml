@@ -1,6 +1,9 @@
 name: zabbix_50
 run-name: Run compatibility with Zabbix 5.0 test
+
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
