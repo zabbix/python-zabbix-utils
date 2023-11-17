@@ -23,7 +23,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 import logging
-from .utils import ZabbixAPIUtils
+from .common import ModuleUtils
 
 
 class EmptyHandler(logging.Handler):
@@ -38,13 +38,12 @@ class SensitiveFilter(logging.Filter):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.hide_data = ZabbixAPIUtils.hide_private
+        self.hide_data = ModuleUtils.hide_private
 
     def filter(self, record):
         record.msg = self.hide_data(record.msg)
         if record.args:
-            new_args = [self.hide_data(arg) if isinstance(arg, str)
-                        else arg for arg in record.args]
-            record.args = tuple(new_args)
+            record.args = tuple(self.hide_data(arg) if isinstance(arg, str)
+                                else arg for arg in record.args)
 
         return 1

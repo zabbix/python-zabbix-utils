@@ -10,8 +10,8 @@ ZABBIX_TOKEN = "8jF7sGh2Rp4TlQ1ZmXo0uYv3Bc6AiD9E"   # Authentication token for A
 api = ZabbixAPI(url=ZABBIX_SERVER)
 
 # Check Zabbix API version and authenticate accordingly
-# Zabbix API version can be compared with version expressed in integer,
-# float (major) or string (full, i.e. "major.minor").
+# Zabbix API version can be compared with version expressed in float (major) or
+# string (full, i.e. "major.minor").
 if api.version >= 5.4:
     # If Zabbix API version is 5.4 or newer, use token-based authentication
     api.login(token=ZABBIX_TOKEN)

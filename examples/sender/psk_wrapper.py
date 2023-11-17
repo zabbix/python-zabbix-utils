@@ -1,5 +1,5 @@
 import ssl
-from zabbix_utils import ZabbixSender
+from zabbix_utils import Sender
 
 # Try importing sslpsk3, fall back to sslpsk2 if not available
 try:
@@ -27,8 +27,8 @@ def psk_wrapper(sock, tls):
 ZABBIX_SERVER = "127.0.0.1"
 ZABBIX_PORT = 10051
 
-# Create a ZabbixSender instance with PSK support
-sender = ZabbixSender(
+# Create a Sender instance with PSK support
+sender = Sender(
     server=ZABBIX_SERVER,
     port=ZABBIX_PORT,
     socket_wrapper=psk_wrapper
@@ -36,12 +36,13 @@ sender = ZabbixSender(
 
 # Send a value to a Zabbix server/proxy with specified parameters
 # Parameters: (host, key, value, clock, ns)
-resp = sender.send_value('host', 'item.key', 'value', 1695713666, 30)
+responses = sender.send_value('host', 'item.key', 'value', 1695713666, 30)
 
-# Check if the value sending was successful
-if resp.failed == 0:
-    # Print a success message along with the response time
-    print(f"Value sent successfully in {resp.time}")
-else:
-    # Print a failure message
-    print("Failed to send value")
+for node, resp in responses.items():
+    # Check if the value sending was successful
+    if resp.failed == 0:
+        # Print a success message along with the response time
+        print(f"Value sent successfully to {node} in {resp.time}")
+    else:
+        # Print a failure message
+        print(f"Failed to send value to {node}")

@@ -16,21 +16,21 @@ FILE_PATH = "templates_export_example.{}"
 # Create an instance of the ZabbixAPI class with the specified authentication details
 api = ZabbixAPI(**ZABBIX_AUTH)
 
-# Determine the file extension based on the Zabbix API version
-FILE_EXTENSION = "yaml"
+# Determine the export file format based on the Zabbix API version
+export_format = "yaml"
 if api.version < 5.4:
-    FILE_EXTENSION = "xml"
+    export_format = "xml"
 
 # Export configuration for specified template IDs
 configuration = api.configuration.export(
     options={
         "templates": TEMPLATE_IDS
     },
-    format=FILE_EXTENSION
+    format=export_format
 )
 
 # Write the exported configuration to a file
-with open(FILE_PATH.format(FILE_EXTENSION), mode='w', encoding='utf-8') as f:
+with open(FILE_PATH.format(export_format), mode='w', encoding='utf-8') as f:
     f.write(configuration)
 
 # Logout to release the Zabbix API session

@@ -3,7 +3,7 @@ import sys
 import unittest
 
 sys.path.append('.')
-from zabbix_utils.api import ZabbixAPI, ZabbixAPIVersion
+from zabbix_utils.api import ZabbixAPI, APIVersion
 
 
 class IntegrationAPITest(unittest.TestCase):
@@ -30,7 +30,7 @@ class IntegrationAPITest(unittest.TestCase):
         self.assertEqual(
             type(self.zapi), ZabbixAPI, "Login was going wrong")
         self.assertEqual(
-            type(self.zapi.api_version()), ZabbixAPIVersion, "Version getting was going wrong")
+            type(self.zapi.api_version()), APIVersion, "Version getting was going wrong")
 
     def test_version_get(self):
         """Tests getting version info works properly"""
@@ -61,7 +61,7 @@ class IntegrationAPITest(unittest.TestCase):
             users = self.zapi.user.get(
                 output=['userid', 'alias']
             )
-        self.assertEqual(type(users), list, "Request user.get was going wrong")
+        self.assertEqual(type(users), list, "Request user.getter was going wrong")
 
 
 if __name__ == '__main__':

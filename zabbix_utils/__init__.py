@@ -22,18 +22,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-from .api import ZabbixAPI, ZabbixAPIVersion
-from .sender import ZabbixSender, ZabbixItem
-from .get import ZabbixGet
-from .exceptions import ZabbixAPIException, ZabbixAPINotSupported, ZabbixProcessingException
+from .api import ZabbixAPI, APIVersion
+from .sender import Sender, ItemValue
+from .getter import Getter
+from .exceptions import ModuleBaseException, APIRequestError, APINotSupported, ProcessingError
 
 __all__ = (
     'ZabbixAPI',
-    'ZabbixAPIVersion',
-    'ZabbixSender',
-    'ZabbixItem',
-    'ZabbixGet',
-    'ZabbixAPIException',
-    'ZabbixAPINotSupported',
-    'ZabbixProcessingException'
+    'APIVersion',
+    'Sender',
+    'ItemValue',
+    'Getter',
+    'ModuleBaseException',
+    'APIRequestError',
+    'APINotSupported',
+    'ProcessingError'
 )

@@ -3,7 +3,7 @@ import sys
 import unittest
 
 sys.path.append('.')
-from zabbix_utils.sender import ZabbixItem, ZabbixSender, ZabbixResponse
+from zabbix_utils.sender import ItemValue, Sender, TrapperResponse, Node
 
 
 class IntegrationSenderTest(unittest.TestCase):
@@ -13,7 +13,7 @@ class IntegrationSenderTest(unittest.TestCase):
         self.ip = '127.0.0.1'
         self.port = 10051
         self.chunk_size = 10
-        self.sender = ZabbixSender(
+        self.sender = Sender(
             server=self.ip,
             port=self.port,
             chunk_size=self.chunk_size
@@ -23,17 +23,18 @@ class IntegrationSenderTest(unittest.TestCase):
         """Tests sending item values works properly"""
 
         items = [
-            ZabbixItem('host1', 'item.key1', 10),
-            ZabbixItem('host1', 'item.key2', 'test message'),
-            ZabbixItem('host2', 'item.key1', -1, 1695713666),
-            ZabbixItem('host3', 'item.key1', '{"msg":"test message"}'),
-            ZabbixItem('host2', 'item.key1', 0, 1695713666, 100)
+            ItemValue('host1', 'item.key1', 10),
+            ItemValue('host1', 'item.key2', 'test message'),
+            ItemValue('host2', 'item.key1', -1, 1695713666),
+            ItemValue('host3', 'item.key1', '{"msg":"test message"}'),
+            ItemValue('host2', 'item.key1', 0, 1695713666, 100)
         ]
-        chunks_resp = self.sender.send(items)
+        responses = self.sender.send(items)
 
-        self.assertEqual(type(chunks_resp), list, "Sending item values was going wrong")
-        for resp in chunks_resp:
-            self.assertEqual(type(resp), ZabbixResponse, "Sending item values was going wrong")
+        self.assertEqual(type(responses), dict, "Sending item values was going wrong")
+        for node, resp in responses.items():
+            self.assertEqual(type(node), Node, "Sending item values was going wrong")
+            self.assertEqual(type(resp), TrapperResponse, "Sending item values was going wrong")
             for key in ('processed', 'failed', 'total', 'time', 'chunk'):
                 try:
                     self.assertIsNotNone(getattr(resp, key), f"There aren't expected '{key}' value")

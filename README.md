@@ -96,11 +96,11 @@ api = ZabbixAPI(url=url, user=user, password=password)
 
 # Method to get version
 ver = api.api_version()
-print(type(ver).__name__, ver) # ZabbixAPIVersion 7.0.0
+print(type(ver).__name__, ver) # APIVersion 7.0.0
 
 # ZabbixAPI prototype with version
 ver = api.version
-print(type(ver).__name__, ver) # ZabbixAPIVersion 7.0.0
+print(type(ver).__name__, ver) # APIVersion 7.0.0
 
 # Comparing versions
 print(ver > 6.0)      # True
@@ -122,33 +122,33 @@ api.logout()
 To send item values to a Zabbix server or a Zabbix proxy you can import and use the library as follows:
 
 ```python
-from zabbix_utils import ZabbixSender
+from zabbix_utils import Sender
 
-sender = ZabbixSender(server='127.0.0.1', port=10051)
+sender = Sender(server='127.0.0.1', port=10051)
 resp = sender.send_value('host', 'item.key', 'value', 1695713666)
 
 print(resp)
-# {"processed": 1, "failed": 0, "total": 1, "time": "0.000338", "chunk": 1}
+# {"127.0.0.1:10051": {"processed": 1, "failed": 0, "total": 1, "time": "0.000338", "chunk": 1}}
 ```
 
 Or you can prepare a list of item values and send all at once:
 
 ```python
-from zabbix_utils import ZabbixItem, ZabbixSender
+from zabbix_utils import ItemValue, Sender
 
 items = [
-    ZabbixItem('host1', 'item.key1', 10),
-    ZabbixItem('host1', 'item.key2', 'test message'),
-    ZabbixItem('host2', 'item.key1', -1, 1695713666),
-    ZabbixItem('host3', 'item.key1', '{"msg":"test message"}'),
-    ZabbixItem('host2', 'item.key1', 0, 1695713666, 100)
+    ItemValue('host1', 'item.key1', 10),
+    ItemValue('host1', 'item.key2', 'test message'),
+    ItemValue('host2', 'item.key1', -1, 1695713666),
+    ItemValue('host3', 'item.key1', '{"msg":"test message"}'),
+    ItemValue('host2', 'item.key1', 0, 1695713666, 100)
 ]
 
-sender = ZabbixSender(server='127.0.0.1', port=10051)
-chunks_resp = sender.send(items)
+sender = Sender(server='127.0.0.1', port=10051)
+response = sender.send(items)
 
-print(chunks_resp)
-# [{"processed": 5, "failed": 0, "total": 5, "time": "0.001661", "chunk": 1}]
+print(response)
+# {"127.0.0.1:10051": {"processed": 5, "failed": 0, "total": 5, "time": "0.001661", "chunk": 1}}
 ```
 
 > Please, refer to the [Zabbix sender protocol](https://www.zabbix.com/documentation/current/manual/appendix/protocols/zabbix_sender) and the [using examples](https://github.com/zabbix/python-zabbix-utils/tree/main/examples/sender) for more information.
@@ -158,9 +158,9 @@ print(chunks_resp)
 To get a value by item key from a Zabbix agent or agent 2 you can import and use the library as follows:
 
 ```python
-from zabbix_utils import ZabbixGet
+from zabbix_utils import Getter
 
-agent = ZabbixGet(host='127.0.0.1', port=10050)
+agent = Getter(host='127.0.0.1', port=10050)
 resp = agent.get('system.uname')
 
 print(resp)
@@ -175,14 +175,14 @@ If it needed to debug some issue with Zabbix API, sender or get you can enable t
 
 ```python
 import logging
-from zabbix_utils import ZabbixGet
+from zabbix_utils import Getter
 
 logging.basicConfig(
     format=u'[%(asctime)s] %(levelname)s %(message)s',
     level=logging.DEBUG
 )
 
-agent = ZabbixGet(host='127.0.0.1', port=10050)
+agent = Getter(host='127.0.0.1', port=10050)
 resp = agent.get('system.uname')
 
 print(resp)

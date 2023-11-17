@@ -4,7 +4,7 @@ import base64
 import unittest
 
 sys.path.append('.')
-from zabbix_utils.api import ZabbixAPI, ZabbixAPIVersion
+from zabbix_utils.api import ZabbixAPI, APIVersion
 
 
 class IntegrationAPITest(unittest.TestCase):
@@ -34,17 +34,15 @@ class IntegrationAPITest(unittest.TestCase):
         self.assertEqual(
             type(self.api), ZabbixAPI, "Login was going wrong")
         self.assertEqual(
-            type(self.api.api_version()), ZabbixAPIVersion, "Version getting was going wrong")
+            type(self.api.api_version()), APIVersion, "Version getting was going wrong")
 
     def test_basic_auth(self):
         """Tests __basic_auth function works properly"""
 
         self.assertEqual(
-            self.api.use_basic, True, "Basic auth was going wrong")
-        self.assertEqual(
-            self.api.basic_cred, base64.b64encode(
+            self.api._ZabbixAPI__basic_cred, base64.b64encode(
                 "http_user:http_pass".encode()
-        ).decode(), "Basic auth credentials generation was going wrong")
+                ).decode(), "Basic auth credentials generation was going wrong")
 
     def test_version_get(self):
         """Tests getting version info works properly"""
@@ -60,10 +58,10 @@ class IntegrationAPITest(unittest.TestCase):
 
         resp = None
         if self.api:
-            if self.api.session_id == self.api.token:
-                resp = self.api.user.checkAuthentication(token=self.api.session_id)
+            if self.api._ZabbixAPI__session_id == self.api._ZabbixAPI__token:
+                resp = self.api.user.checkAuthentication(token=self.api._ZabbixAPI__session_id)
             else:
-                resp = self.api.user.checkAuthentication(sessionid=self.api.session_id)
+                resp = self.api.user.checkAuthentication(sessionid=self.api._ZabbixAPI__session_id)
         self.assertEqual(
             type(resp), dict, "Request user.checkAuthentication was going wrong")
 

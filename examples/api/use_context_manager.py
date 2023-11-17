@@ -6,6 +6,8 @@ ZABBIX_USER = "Admin"           # Zabbix user name for authentication
 ZABBIX_PASSWORD = "zabbix"      # Zabbix user password for authentication
 
 # Use a context manager for automatic logout upon completion of the request.
+# Each time it's created it performs "login" and "apiinfo.version".
+# Highly recommended to use it many times in a single script.
 with ZabbixAPI(url=ZABBIX_SERVER) as api:
     # Authenticate with the Zabbix API using the provided user credentials
     api.login(user=ZABBIX_USER, password=ZABBIX_PASSWORD)

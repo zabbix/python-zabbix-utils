@@ -1,9 +1,9 @@
 import sys
 import json
-from zabbix_utils import ZabbixGet
+from zabbix_utils import Getter
 
-# Create a ZabbixGet instance for querying Zabbix agent
-agent = ZabbixGet(host='127.0.0.1', port=10050)
+# Create a Getter instance for querying Zabbix agent
+agent = Getter(host='127.0.0.1', port=10050)
 
 # Send a Zabbix agent query for network interface discovery
 resp = agent.get('net.if.discovery')

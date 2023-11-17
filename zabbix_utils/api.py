@@ -41,9 +41,9 @@ try:
 except ImportError:
     from typing_extensions import Self
 
-from .utils import ZabbixAPIUtils
+from .common import ModuleUtils
 from .logger import EmptyHandler, SensitiveFilter
-from .exceptions import ZabbixAPIException, ZabbixAPINotSupported, ZabbixProcessingException
+from .exceptions import APIRequestError, APINotSupported, ProcessingError
 from .version import __version__, __min_supported__, __max_supported__
 
 
@@ -52,7 +52,7 @@ log.addHandler(EmptyHandler())
 log.addFilter(SensitiveFilter())
 
 
-class ZabbixAPIObject():
+class APIObject():
     """Zabbix API object.
 
     Args:
@@ -87,7 +87,7 @@ class ZabbixAPIObject():
             log.debug("Executing %s method", method)
 
             # Determine if authentication is needed based on whether the method requires it.
-            need_auth = method not in ZabbixAPIUtils.UNAUTH_METHODS
+            need_auth = method not in ModuleUtils.UNAUTH_METHODS
 
             # Call the Zabbix API method using the parent's send_api_request method.
             # Retrieve the 'result' from the API response.
@@ -100,7 +100,7 @@ class ZabbixAPIObject():
         return func
 
 
-class ZabbixAPIVersion():
+class APIVersion():
     """Zabbix API version object.
 
     Args:
@@ -146,7 +146,7 @@ class ZabbixAPIVersion():
 
     def __parse_version(self, ver: str) -> List[Any]:
         # Parse the version string into a list of integers.
-        regexp = r"(\d+)\.(\d+)\.(\d+)"
+        regexp = r"^(\d+)\.(\d+)\.(\d+)$"
         try:
             result = list(map(int, re.search(regexp, ver).groups()))
             return result
@@ -165,7 +165,7 @@ class ZabbixAPIVersion():
         return self.__raw
 
     def __eq__(self, other: Union[float, str]) -> bool:
-        # Check equality with another ZabbixAPIVersion.
+        # Check equality with another APIVersion.
         if isinstance(other, float):
             return self.major == other
         if isinstance(other, str):
@@ -176,7 +176,7 @@ class ZabbixAPIVersion():
         )
 
     def __gt__(self, other: Union[float, str]) -> bool:
-        # Check if greater than another ZabbixAPIVersion
+        # Check if greater than another APIVersion
         if isinstance(other, float):
             return self.major > other
         if isinstance(other, str):
@@ -187,7 +187,7 @@ class ZabbixAPIVersion():
         )
 
     def __lt__(self, other: Union[float, str]) -> bool:
-        # Check if less than another ZabbixAPIVersion
+        # Check if less than another APIVersion
         if isinstance(other, float):
             return self.major < other
         if isinstance(other, str):
@@ -198,15 +198,15 @@ class ZabbixAPIVersion():
         )
 
     def __ne__(self, other: Any) -> bool:
-        # Check if not equal to another ZabbixAPIVersion
+        # Check if not equal to another APIVersion
         return not self.__eq__(other)
 
     def __ge__(self, other: Any) -> bool:
-        # Check if greater than or equal to another ZabbixAPIVersion
+        # Check if greater than or equal to another APIVersion
         return not self.__lt__(other)
 
     def __le__(self, other: Any) -> bool:
-        # Check if less than or equal to another ZabbixAPIVersion
+        # Check if less than or equal to another APIVersion
         return not self.__gt__(other)
 
 
@@ -240,7 +240,7 @@ class ZabbixAPI():
         password = password or env.get('ZABBIX_PASSWORD') or None
         token = token or env.get('ZABBIX_TOKEN') or None
 
-        self.url = ZabbixAPIUtils.check_url(url)
+        self.url = ModuleUtils.check_url(url)
         self.validate_certs = validate_certs
         self.timeout = timeout
 
@@ -262,23 +262,10 @@ class ZabbixAPI():
             name (str): Zabbix API method name.
 
         Returns:
-            ZabbixAPIObject: Zabbix API object instance.
+            APIObject: Zabbix API object instance.
         """
 
-        return ZabbixAPIObject(name, self)
-
-    def __refresh_auth(self, session_id: str) -> dict:
-        # Refresh authentication session using either token or current session ID.
-        if session_id:
-            if self.__use_token:
-                log.debug("Refresh auth session using token in Zabbix API")
-                return self.user.checkAuthentication(token=session_id)
-
-            log.debug("Refresh auth session using sessionid in Zabbix API")
-            return self.user.checkAuthentication(sessionid=session_id)
-
-        log.debug("You're not logged in Zabbix API")
-        return {}
+        return APIObject(name, self)
 
     def __enter__(self) -> Self:
         return self
@@ -297,7 +284,7 @@ class ZabbixAPI():
         log.debug(
             "Enable Basic Authentication with username:%s password:%s",
             user,
-            ZabbixAPIUtils.HIDING_MASK
+            ModuleUtils.HIDING_MASK
         )
 
         # Enable Basic Authentication by encoding username and password in base64.
@@ -305,23 +292,23 @@ class ZabbixAPI():
             f"{user}:{password}".encode()
         ).decode()
 
-    def api_version(self) -> ZabbixAPIVersion:
+    def api_version(self) -> APIVersion:
         """Return object of Zabbix API version.
 
         Returns:
-            ZabbixAPIVersion: Object of Zabbix API version
+            APIVersion: Object of Zabbix API version
         """
 
         if self.__version is None:
-            self.__version = ZabbixAPIVersion(self.apiinfo.version())
+            self.__version = APIVersion(self.apiinfo.version())
         return self.__version
 
     @property
-    def version(self) -> ZabbixAPIVersion:
+    def version(self) -> APIVersion:
         """Return object of Zabbix API version.
 
         Returns:
-            ZabbixAPIVersion: Object of Zabbix API version.
+            APIVersion: Object of Zabbix API version.
         """
 
         return self.api_version()
@@ -339,24 +326,24 @@ class ZabbixAPI():
         # Login using either token or username/password combination based on Zabbix API version.
         if token:
             if self.version < 5.4:
-                raise ZabbixAPINotSupported(
+                raise APINotSupported(
                     message="Token usage",
                     version=self.version
                 )
             if user or password:
-                raise ZabbixProcessingException(
+                raise ProcessingError(
                     "Token cannot be used with username and password")
             self.__use_token = True
             self.__session_id = token
             return
 
         if not user:
-            raise ZabbixProcessingException("Username is missing")
+            raise ProcessingError("Username is missing")
         if not password:
-            raise ZabbixProcessingException("User password is missing")
+            raise ProcessingError("User password is missing")
 
         # Use different parameter names for login based on Zabbix API version.
-        if self.version < 6.4:
+        if self.version < 5.4:
             user_cred = {
                 "user": user,
                 "password": password
@@ -368,7 +355,7 @@ class ZabbixAPI():
             }
 
         log.debug(
-            "Login to Zabbix API using username:%s password:%s", user, ZabbixAPIUtils.HIDING_MASK
+            "Login to Zabbix API using username:%s password:%s", user, ModuleUtils.HIDING_MASK
         )
         self.__use_token = False
         self.__session_id = self.user.login(**user_cred)
@@ -386,9 +373,8 @@ class ZabbixAPI():
                 return
 
             log.debug("Logout from Zabbix API")
-
-            if self.user.logout():
-                self.__session_id = None
+            self.user.logout()
+            self.__session_id = None
         else:
             log.debug("You're not logged in Zabbix API")
 
@@ -399,10 +385,19 @@ class ZabbixAPI():
             bool: User authentication status (`True`, `False`)
         """
 
-        # Check authentication status by checking session refreshing result.
-        refresh_resp = self.__refresh_auth(self.__session_id).get('userid')
+        # Check authentication session using either token or current session ID.
+        if not self.__session_id:
+            log.debug("You're not logged in Zabbix API")
+            return False
 
-        return bool(refresh_resp)
+        if self.__use_token:
+            log.debug("Check auth session using token in Zabbix API")
+            refresh_resp = self.user.checkAuthentication(token=self.__session_id)
+        else:
+            log.debug("Check auth session using sessionid in Zabbix API")
+            refresh_resp = self.user.checkAuthentication(sessionid=self.__session_id)
+
+        return bool(refresh_resp.get('userid'))
 
     def send_api_request(self, method: str, params: Union[dict, None] = None,
                          need_auth=True) -> dict:
@@ -414,8 +409,8 @@ class ZabbixAPI():
             need_auth (bool, optional): Authorization using flag. Defaults to `False`.
 
         Raises:
-            ZabbixProcessingException: Wrapping built-in exceptions during request processing.
-            ZabbixAPIException: Wrapping errors from Zabbix API.
+            ProcessingError: Wrapping built-in exceptions during request processing.
+            APIRequestError: Wrapping errors from Zabbix API.
 
         Returns:
             dict: Dictionary with Zabbix API response.
@@ -438,7 +433,7 @@ class ZabbixAPI():
         # Add authentication information to the request if needed.
         if need_auth:
             if not self.__session_id:
-                raise ZabbixProcessingException("You're not logged in Zabbix API")
+                raise ProcessingError("You're not logged in Zabbix API")
             if self.version < 6.4 or self.__basic_cred is not None:
                 request_json['auth'] = self.__session_id
             else:
@@ -475,12 +470,12 @@ class ZabbixAPI():
             resp = ul.urlopen(req, context=ctx)
             resp_json = json.loads(resp.read().decode('utf-8'))
         except URLError as err:
-            raise ZabbixProcessingException(f"Unable to connect to {self.url}:", err) from None
+            raise ProcessingError(f"Unable to connect to {self.url}:", err) from None
         except ValueError as err:
-            raise ZabbixProcessingException("Unable to parse json:", err) from None
+            raise ProcessingError("Unable to parse json:", err) from None
 
         # Log the response details before returning.
-        if method not in ZabbixAPIUtils.FILES_METHODS:
+        if method not in ModuleUtils.FILES_METHODS:
             log.debug(
                 "Received response body: %s",
                 json.dumps(resp_json, indent=4, separators=(',', ': '))
@@ -498,12 +493,15 @@ class ZabbixAPI():
         if 'error' in resp_json:
             err = resp_json['error'].copy()
             err['body'] = json.dumps(request_json)
-            raise ZabbixAPIException(err)
+            raise APIRequestError(err)
 
         return resp_json
 
     def __check_version(self, skip_check: bool) -> None:
         # Check if the Zabbix API version is supported by the library.
+        skip_check_help = "If you're sure zabbix_utils will work properly with your current \
+Zabbix version you can skip this check by \
+specifying skip_version_check=True when create ZabbixAPI object."
         if self.version < __min_supported__:
             if skip_check:
                 log.debug(
@@ -512,9 +510,9 @@ class ZabbixAPI():
                     "Further library use at your own risk!"
                 )
             else:
-                raise ZabbixAPINotSupported(
+                raise APINotSupported(
                     f"Version of Zabbix API [{self.version}] is not supported by the library. " +
-                    f"The oldest supported version is {__min_supported__}.0"
+                    f"The oldest supported version is {__min_supported__}.0. " + skip_check_help
                 )
 
         if self.version > __max_supported__:
@@ -525,7 +523,7 @@ class ZabbixAPI():
                     "Recommended to update the library. Further library use at your own risk!"
                 )
             else:
-                raise ZabbixAPINotSupported(
+                raise APINotSupported(
                     f"Version of Zabbix API [{self.version}] was not tested with the library. " +
-                    f"The latest tested version is {__max_supported__}.0"
+                    f"The latest tested version is {__max_supported__}.0. " + skip_check_help
                 )

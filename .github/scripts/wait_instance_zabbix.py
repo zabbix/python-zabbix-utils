@@ -3,12 +3,12 @@ import sys
 import time
 
 sys.path.append('.')
-from zabbix_utils import ZabbixAPI, ZabbixAPIException
+from zabbix_utils import ZabbixAPI, APIRequestError
 
 for x in range(20):
     try:
         zapi = ZabbixAPI(url="localhost", user="Admin", password="zabbix")
-    except ZabbixAPIException as error:
+    except APIRequestError as error:
         print(f'Zabbix API is not ready... Data: {error}', flush=True)
         time.sleep(5)
     else:

@@ -4,7 +4,7 @@ import json
 import unittest
 
 sys.path.append('.')
-from zabbix_utils.get import ZabbixGet
+from zabbix_utils.getter import Getter
 
 
 class IntegrationGetTest(unittest.TestCase):
@@ -13,7 +13,7 @@ class IntegrationGetTest(unittest.TestCase):
     def setUp(self):
         self.host = '127.0.0.1'
         self.port = 10050
-        self.agent = ZabbixGet(
+        self.agent = Getter(
             host=self.host,
             port=self.port
         )

@@ -4,10 +4,10 @@ import time
 import unittest
 
 sys.path.append('.')
-from zabbix_utils.get import ZabbixGet
-from zabbix_utils.api import ZabbixAPI, ZabbixAPIVersion
-from zabbix_utils.sender import ZabbixItem, ZabbixSender, ZabbixResponse
-from zabbix_utils.exceptions import ZabbixAPIException, ZabbixAPINotSupported
+from zabbix_utils.getter import Getter
+from zabbix_utils.api import ZabbixAPI, APIVersion
+from zabbix_utils.sender import ItemValue, Sender, TrapperResponse
+from zabbix_utils.exceptions import APIRequestError, APINotSupported
 
 ZABBIX_URL = 'localhost'
 ZABBIX_USER = 'Admin'
@@ -33,7 +33,7 @@ class CompatibilityAPITest(unittest.TestCase):
             type(self.zapi), ZabbixAPI, "Creating ZabbixAPI object was going wrong")
 
         self.assertEqual(
-            type(self.zapi.api_version()), ZabbixAPIVersion, "Version getting was going wrong")
+            type(self.zapi.api_version()), APIVersion, "Version getting was going wrong")
 
         self.zapi.login(
             user=self.user,
@@ -56,14 +56,14 @@ class CompatibilityAPITest(unittest.TestCase):
 
         self.assertIsNone(self.zapi._ZabbixAPI__session_id, "Logout was going wrong")
 
-        with self.assertRaises(ZabbixAPIException,
+        with self.assertRaises(APIRequestError,
                                msg="Request user.checkAuthentication after logout was going wrong"):
             resp = self.zapi.user.checkAuthentication(sessionid=self.zapi._ZabbixAPI__session_id)
 
     def test_token_auth(self):
         """Tests auth using token"""
 
-        with self.assertRaises(ZabbixAPINotSupported,
+        with self.assertRaises(APINotSupported,
                                msg="Login by token should be not supported"):
             self.zapi.login(token=self.token)
 
@@ -75,7 +75,7 @@ class CompatibilitySenderTest(unittest.TestCase):
         self.ip = '127.0.0.1'
         self.port = 10051
         self.chunk_size = 10
-        self.sender = ZabbixSender(
+        self.sender = Sender(
             server=self.ip,
             port=self.port,
             chunk_size=self.chunk_size
@@ -148,16 +148,16 @@ class CompatibilitySenderTest(unittest.TestCase):
         """Tests sending item values"""
 
         items = [
-            ZabbixItem(self.hostname, self.itemkey, 10),
-            ZabbixItem(self.hostname, self.itemkey, 'test message'),
-            ZabbixItem(self.hostname, 'item_key1', -1, 1695713666),
-            ZabbixItem(self.hostname, 'item_key2', '{"msg":"test message"}'),
-            ZabbixItem(self.hostname, self.itemkey, 0, 1695713666, 100),
-            ZabbixItem(self.hostname, self.itemkey, 5.5, 1695713666)
+            ItemValue(self.hostname, self.itemkey, 10),
+            ItemValue(self.hostname, self.itemkey, 'test message'),
+            ItemValue(self.hostname, 'item_key1', -1, 1695713666),
+            ItemValue(self.hostname, 'item_key2', '{"msg":"test message"}'),
+            ItemValue(self.hostname, self.itemkey, 0, 1695713666, 100),
+            ItemValue(self.hostname, self.itemkey, 5.5, 1695713666)
         ]
-        resp = self.sender.send(items)[0]
+        resp = list(self.sender.send(items).values())[0]
 
-        self.assertEqual(type(resp), ZabbixResponse, "Sending item values was going wrong")
+        self.assertEqual(type(resp), TrapperResponse, "Sending item values was going wrong")
         self.assertEqual(resp.total, len(items), "Total number of the sent values is unexpected")
         self.assertEqual(resp.processed, 4, "Number of the processed values is unexpected")
         self.assertEqual(resp.failed, (resp.total - resp.processed), "Number of the failed values is unexpected")
@@ -169,7 +169,7 @@ class CompatibilityGetTest(unittest.TestCase):
     def setUp(self):
         self.host = 'localhost'
         self.port = 10050
-        self.agent = ZabbixGet(
+        self.agent = Getter(
             host=self.host,
             port=self.port
         )

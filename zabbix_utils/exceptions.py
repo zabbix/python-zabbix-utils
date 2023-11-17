@@ -22,18 +22,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-from .utils import ZabbixAPIUtils
+from .common import ModuleUtils
 
 
-class ZabbixAPIException(Exception):
-    """Zabbix API exception class.
+class ModuleBaseException(Exception):
+    pass
+
+
+class APIRequestError(ModuleBaseException):
+    """Exception class when Zabbix API returns error by request.
 
     Args:
         api_error (str): Raw error message from Zabbix API.
     """
     def __init__(self, api_error: str):
         if isinstance(api_error, dict):
-            api_error['body'] = ZabbixAPIUtils.hide_private(api_error['body'])
+            api_error['body'] = ModuleUtils.hide_private(api_error['body'])
             super().__init__("{message} {data}".format(**api_error))
             self.error = api_error
             for key, value in api_error.items():
@@ -42,7 +46,7 @@ class ZabbixAPIException(Exception):
             super().__init__(api_error)
 
 
-class ZabbixAPINotSupported(Exception):
+class APINotSupported(ModuleBaseException):
     """Exception class when object/action is not supported by Zabbix API.
 
     Args:
@@ -57,7 +61,7 @@ class ZabbixAPINotSupported(Exception):
         super().__init__(message)
 
 
-class ZabbixProcessingException(Exception):
+class ProcessingError(ModuleBaseException):
     def __init__(self, *args):
         super().__init__(" ".join(map(str, args)))
         return

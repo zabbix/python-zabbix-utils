@@ -50,7 +50,7 @@ jobs:
           sudo touch /var/run/postgresql/14-main.pg_stat_tmp/global.tmp
           sudo chmod 0777 /var/run/postgresql/14-main.pg_stat_tmp/global.tmp
           (sudo -u postgres /usr/lib/postgresql/14/bin/postgres -D /var/lib/postgresql/14/main -c config_file=/etc/postgresql/14/main/postgresql.conf)&
-          sleep 1
+          sleep 5
           cd /tmp/zabbix-branch/database/postgresql
           sudo -u postgres createuser zabbix
           sudo -u postgres createdb -O zabbix -E Unicode -T template0 zabbix

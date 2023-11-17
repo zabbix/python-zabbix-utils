@@ -1,5 +1,5 @@
 import ssl
-from zabbix_utils import ZabbixGet
+from zabbix_utils import Getter
 
 # Try importing sslpsk3, fall back to sslpsk2 if not available
 try:
@@ -28,8 +28,8 @@ def psk_wrapper(sock):
 ZABBIX_AGENT = "127.0.0.1"
 ZABBIX_PORT = 10050
 
-# Create a ZabbixGet instance with PSK support
-agent = ZabbixGet(
+# Create a Getter instance with PSK support
+agent = Getter(
     host=ZABBIX_AGENT,
     port=ZABBIX_PORT,
     socket_wrapper=psk_wrapper

@@ -1,5 +1,5 @@
 import ssl
-from zabbix_utils import ZabbixSender
+from zabbix_utils import Sender
 
 # Zabbix server details
 ZABBIX_SERVER = "zabbix-server.example.com"
@@ -20,8 +20,8 @@ def tls_wrapper(sock, *args, **kwargs):
     return context.wrap_socket(sock, server_hostname=ZABBIX_SERVER)
 
 
-# Create an instance of ZabbixSender with TLS configuration
-sender = ZabbixSender(
+# Create an instance of Sender with TLS configuration
+sender = Sender(
     server=ZABBIX_SERVER,
     port=ZABBIX_PORT,
     # Use the defined tls_wrapper function for socket wrapping
@@ -30,12 +30,13 @@ sender = ZabbixSender(
 
 # Send a value to a Zabbix server/proxy with specified parameters
 # Parameters: (host, key, value, clock, ns)
-resp = sender.send_value('host', 'item.key', 'value', 1695713666, 30)
+responses = sender.send_value('host', 'item.key', 'value', 1695713666, 30)
 
-# Check if the value sending was successful
-if resp.failed == 0:
-    # Print a success message along with the response time
-    print(f"Value sent successfully in {resp.time}")
-else:
-    # Print a failure message
-    print("Failed to send value")
+for node, resp in responses.items():
+    # Check if the value sending was successful
+    if resp.failed == 0:
+        # Print a success message along with the response time
+        print(f"Value sent successfully to {node} in {resp.time}")
+    else:
+        # Print a failure message
+        print(f"Failed to send value to {node}")

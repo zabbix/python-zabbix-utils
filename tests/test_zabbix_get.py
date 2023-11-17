@@ -2,8 +2,8 @@ import json
 import socket
 import unittest
 
-from zabbix_utils.get import ZabbixGet
-from zabbix_utils.exceptions import ZabbixProcessingException
+from zabbix_utils import Getter
+from zabbix_utils import ProcessingError
 
 
 DEFAULT_VALUES = {
@@ -12,11 +12,11 @@ DEFAULT_VALUES = {
     'source_ip': '192.168.1.1'
 }
 
-class TestZabbixGet(unittest.TestCase):
-    """Test cases for ZabbixGet object"""
+class TestGetter(unittest.TestCase):
+    """Test cases for Getter object"""
 
     def test_init(self):
-        """Tests creating of ZabbixGet object"""
+        """Tests creating of Getter object"""
 
         test_cases = [
             {
@@ -41,14 +41,14 @@ class TestZabbixGet(unittest.TestCase):
 
         for case in test_cases:
 
-            agent = ZabbixGet(**case['input'])
+            agent = Getter(**case['input'])
 
             self.assertEqual(json.dumps(agent.__dict__), case['output'],
                              f"unexpected output with input data: {case['input']}")
             
             with self.assertRaises(TypeError,
                                    msg="expected TypeError exception hasn't been raised"):
-                agent = ZabbixGet(socket_wrapper='wrapper', **case['input'])
+                agent = Getter(socket_wrapper='wrapper', **case['input'])
 
     def test_create_packet(self):
         """Tests __create_packet method in different cases"""
@@ -56,14 +56,15 @@ class TestZabbixGet(unittest.TestCase):
         test_cases = [
             {'input': {'data':'test'}, 'output': b'ZBXD\x01\x04\x00\x00\x00\x00\x00\x00\x00test'},
             {'input': {'data':'test_creating_packet'}, 'output': b'ZBXD\x01\x14\x00\x00\x00\x00\x00\x00\x00test_creating_packet'},
-            {'input': {'data':'test_compression_flag', 'compressed_size': 5}, 'output': b'ZBXD\x02\x05\x00\x00\x00\x15\x00\x00\x00test_compression_flag'}
+            {'input': {'data':'test_compression_flag'}, 'output': b'ZBXD\x01\x15\x00\x00\x00\x00\x00\x00\x00test_compression_flag'},
+            {'input': {'data':'glāžšķūņu rūķīši'}, 'output': b'ZBXD\x01\x1a\x00\x00\x00\x00\x00\x00\x00gl\xc4\x81\xc5\xbe\xc5\xa1\xc4\xb7\xc5\xab\xc5\x86u r\xc5\xab\xc4\xb7\xc4\xab\xc5\xa1i'}
         ]
 
         for case in test_cases:
 
-            agent = ZabbixGet()
+            getter = Getter()
 
-            self.assertEqual(agent._ZabbixGet__create_packet(**case['input']), case['output'],
+            self.assertEqual(getter._Getter__create_packet(**case['input']), case['output'],
                              f"unexpected output with input data: {case['input']}")
 
     def test_get_response(self):
@@ -72,7 +73,9 @@ class TestZabbixGet(unittest.TestCase):
         test_cases = [
             {'input': b'ZBXD\x01\x04\x00\x00\x00\x04\x00\x00\x00test', 'output': 'test'},
             {'input': b'ZBXD\x01\x14\x00\x00\x00\x00\x00\x00\x00test_creating_packet', 'output': 'test_creating_packet'},
-            {'input': b'ZBXD\x02\x00\x00\x00\x00\x15\x00\x00\x00test_compression_flag', 'output': 'test_compression_flag'}
+            {'input': b'ZBXD\x02\x00\x00\x00\x00\x15\x00\x00\x00test_compression_flag', 'output': 'test_compression_flag'},
+            {'input': b'ZBXD\x03\x15\x00\x00\x00\x00\x00\x00\x00test_both_flags', 'output': 'test_both_flags'},
+            {'input': b'ZBXD\x03\x00\x00\x00\x00\x15\x00\x00\x00test_both_flags', 'output': ''}
         ]
 
         class ConnectTest():
@@ -88,29 +91,29 @@ class TestZabbixGet(unittest.TestCase):
 
         for case in test_cases:
 
-            agent = ZabbixGet()
+            getter = Getter()
             conn = ConnectTest(case['input'])        
 
-            self.assertEqual(agent._ZabbixGet__get_response(conn), case['output'],
+            self.assertEqual(getter._Getter__get_response(conn), case['output'],
                              f"unexpected output with input data: {case['input']}")
 
-        with self.assertRaises(ZabbixProcessingException,
-                               msg="expected ZabbixProcessingException exception hasn't been raised"):
-            agent = ZabbixGet()
+        with self.assertRaises(ProcessingError,
+                               msg="expected ProcessingError exception hasn't been raised"):
+            getter = Getter()
             conn = ConnectTest(b'test')
-            agent._ZabbixGet__get_response(conn)
+            getter._Getter__get_response(conn)
 
-        with self.assertRaises(ZabbixProcessingException,
-                               msg="expected ZabbixProcessingException exception hasn't been raised"):
-            agent = ZabbixGet()
-            conn = ConnectTest(b'ZBXD\x04\x04\x00\x00\x00\x04\x00\x00\x00test')
-            agent._ZabbixGet__get_response(conn)
+        with self.assertRaises(ProcessingError,
+                               msg="expected ProcessingError exception hasn't been raised"):
+            getter = Getter()
+            conn = ConnectTest(b'ZBXD\x04\x04\x00\x00\x00\x00\x00\x00\x00test')
+            getter._Getter__get_response(conn)
 
-        with self.assertRaises(ZabbixProcessingException,
-                               msg="expected ZabbixProcessingException exception hasn't been raised"):
-            agent = ZabbixGet()
-            conn = ConnectTest(b'ZBXD\x05\x04\x00\x00\x00\x04\x00\x00\x00test')
-            agent._ZabbixGet__get_response(conn)
+        with self.assertRaises(ProcessingError,
+                               msg="expected ProcessingError exception hasn't been raised"):
+            getter = Getter()
+            conn = ConnectTest(b'ZBXD\x00\x04\x00\x00\x00\x00\x00\x00\x00test')
+            getter._Getter__get_response(conn)
 
 
 

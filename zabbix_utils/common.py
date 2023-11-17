@@ -26,7 +26,7 @@ import re
 from typing import Match
 
 
-class ZabbixAPIUtils():
+class ModuleUtils():
 
     # Hidding mask for sensitive data
     HIDING_MASK = "*" * 8
@@ -73,7 +73,6 @@ class ZabbixAPIUtils():
 
         Args:
             string (str): Raw string with without hiding.
-
             show_len (int, optional): Number of signs shown on each side of the string. \
 Defaults to 4.
 
@@ -81,9 +80,13 @@ Defaults to 4.
             str: String with hiding part.
         """
 
+        # If show_len is 0 or the length of the string is smaller than the hiding mask length
+        # and show_len from both sides of the string, return only hiding mask.
         if show_len == 0 or len(string) <= (len(cls.HIDING_MASK) + show_len*2):
             return cls.HIDING_MASK
 
+        # Return the string with the the hiding mask, surrounded by specified number of characters
+        # shown on each side of the string.
         return f"{string[:show_len]}{cls.HIDING_MASK}{string[-show_len:]}"
 
     @classmethod
@@ -92,20 +95,22 @@ Defaults to 4.
 
         Args:
             message (str): Message text with private data.
-
             fields (dict): Dictionary of private fields and their seeking regexps.
 
         Returns:
             str: Message text without private data.
         """
 
+        # Use provided fields or default to class-level private fields.
         private_fields = fields if fields else cls.PRIVATE_FIELDS
 
         def gen_repl(match: Match):
             return cls.mask_secret(match.group(0))
 
+        # Create a regular expression pattern by joining seeking regexps for private fields.
         pattern = re.compile(
             r"|".join([rf"((?<=[\"']{f}[\"']:\s[\"']){r})" for f, r in private_fields.items()])
         )
 
+        # Use the regular expression pattern to replace occurrences of private data in the message.
         return re.sub(pattern, gen_repl, message)

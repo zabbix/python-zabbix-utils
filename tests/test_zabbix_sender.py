@@ -4,8 +4,8 @@ import unittest
 import configparser
 from unittest.mock import patch
 
-from zabbix_utils.sender import ZabbixSender, ZabbixCluster, ZabbixItem
-from zabbix_utils.exceptions import ZabbixProcessingException
+from zabbix_utils.sender import Sender, Cluster, ItemValue
+from zabbix_utils.exceptions import ProcessingError
 
 
 DEFAULT_VALUES = {
@@ -31,11 +31,11 @@ SourceIP={DEFAULT_VALUES['source_ip']}
 """
 ]
 
-class TestZabbixSender(unittest.TestCase):
-    """Test cases for ZabbixSender object"""
+class TestSender(unittest.TestCase):
+    """Test cases for Sender object"""
 
     def test_init(self):
-        """Tests creating of ZabbixSender object"""
+        """Tests creating of Sender object"""
 
         test_cases = [
             {
@@ -72,14 +72,14 @@ class TestZabbixSender(unittest.TestCase):
         def mock_load_config(self, filepath):
             config = configparser.ConfigParser(strict=False)
             config.read_string(filepath)
-            self._ZabbixSender__read_config(config)
+            self._Sender__read_config(config['root'])
 
         for case in test_cases:
             with patch.multiple(
-                    ZabbixSender,
-                    _ZabbixSender__load_config=mock_load_config):
+                    Sender,
+                    _Sender__load_config=mock_load_config):
 
-                sender = ZabbixSender(**case['input'])
+                sender = Sender(**case['input'])
 
                 self.assertEqual(str(sender.clusters), case['clusters'],
                                  f"unexpected output with input data: {case['input']}")
@@ -93,38 +93,38 @@ class TestZabbixSender(unittest.TestCase):
 
                 with self.assertRaises(TypeError,
                                    msg="expected TypeError exception hasn't been raised"):
-                    sender = ZabbixSender(socket_wrapper='wrapper', **case['input'])
+                    sender = Sender(socket_wrapper='wrapper', **case['input'])
 
         with self.assertRaises(TypeError,
                                msg="expected TypeError exception hasn't been raised"):
-            sender = ZabbixSender(server='localhost', port='test')
+            sender = Sender(server='localhost', port='test')
 
     def test_create_packet(self):
         """Tests __create_packet method in different cases"""
 
         test_cases = [
             {
-                'input': {'items':[ZabbixItem('test', 'test', 0)]},
-                'output': b'ZBXD\x01S\x00\x00\x00\x00\x00\x00\x00{"request": "sender data", "data": \
-[{"host": "test", "key": "test", "value": "0"}]}'
+                'input': {'items':[ItemValue('test', 'glāžšķūņu rūķīši', 0)]},
+                'output': b'ZBXD\x01i\x00\x00\x00\x00\x00\x00\x00{"request": "sender data", "data": \
+[{"host": "test", "key": "gl\xc4\x81\xc5\xbe\xc5\xa1\xc4\xb7\xc5\xab\xc5\x86u r\xc5\xab\xc4\xb7\xc4\xab\xc5\xa1i", "value": "0"}]}'
             },
             {
-                'input': {'items':[ZabbixItem('test', 'test_creating_packet', 0)]},
-                'output': b'ZBXD\x01c\x00\x00\x00\x00\x00\x00\x00{"request": "sender data", "data": \
+                'input': {'items':[ItemValue('test', 'test_creating_packet', 0)]},
+                'output': b'ZBXD\x01\x63\x00\x00\x00\x00\x00\x00\x00{"request": "sender data", "data": \
 [{"host": "test", "key": "test_creating_packet", "value": "0"}]}'
             },
             {
-                'input': {'items':[ZabbixItem('test', 'test_compression_flag', 0)], 'compressed_size': 5},
-                'output': b'ZBXD\x02\x05\x00\x00\x00d\x00\x00\x00{"request": "sender data", "data": \
+                'input': {'items':[ItemValue('test', 'test_compression_flag', 0)], 'compressed_size': 5},
+                'output': b'ZBXD\x02\x05\x00\x00\x00\x64\x00\x00\x00{"request": "sender data", "data": \
 [{"host": "test", "key": "test_compression_flag", "value": "0"}]}'
             }
         ]
 
         for case in test_cases:
 
-            sender = ZabbixSender()
+            sender = Sender()
 
-            self.assertEqual(sender._ZabbixSender__create_packet(**case['input']), case['output'],
+            self.assertEqual(sender._Sender__create_packet(**case['input']), case['output'],
                              f"unexpected output with input data: {case['input']}")
 
     def test_get_response(self):
@@ -132,19 +132,24 @@ class TestZabbixSender(unittest.TestCase):
 
         test_cases = [
             {
-                'input': b'ZBXD\x01S\x00\x00\x00\x00\x00\x00\x00{"request": "sender data", "data": \
+                'input': b'ZBXD\x01\x53\x00\x00\x00\x00\x00\x00\x00{"request": "sender data", "data": \
 [{"host": "test", "key": "test", "value": "0"}]}',
                 'output': '{"request": "sender data", "data": [{"host": "test", "key": "test", "value": "0"}]}'
             },
             {
-                'input': b'ZBXD\x01c\x00\x00\x00\x00\x00\x00\x00{"request": "sender data", "data": \
+                'input': b'ZBXD\x01\x63\x00\x00\x00\x00\x00\x00\x00{"request": "sender data", "data": \
 [{"host": "test", "key": "test_creating_packet", "value": "0"}]}',
                 'output': '{"request": "sender data", "data": [{"host": "test", "key": "test_creating_packet", "value": "0"}]}'
             },
             {
-                'input': b'ZBXD\x02\x05\x00\x00\x00d\x00\x00\x00{"request": "sender data", "data": \
+                'input': b'ZBXD\x02\x05\x00\x00\x00\x64\x00\x00\x00{"request": "sender data", "data": \
 [{"host": "test", "key": "test_compression_flag", "value": "0"}]}',
                 'output': '{"request": "sender data", "data": [{"host": "test", "key": "test_compression_flag", "value": "0"}]}'
+            },
+            {
+                'input': b'ZBXD\x03\x5e\x00\x00\x00\x00\x00\x00\x00{"request": "sender data", "data": \
+[{"host": "test", "key": "test_both_flags", "value": "0"}]}',
+                'output': '{"request": "sender data", "data": [{"host": "test", "key": "test_both_flags", "value": "0"}]}'
             }
         ]
 
@@ -161,37 +166,41 @@ class TestZabbixSender(unittest.TestCase):
 
         for case in test_cases:
 
-            sender = ZabbixSender()
+            sender = Sender()
             conn = ConnectTest(case['input'])
-            
-            #print(json.dumps(sender._ZabbixSender__get_response(conn)))
 
-            self.assertEqual(json.dumps(sender._ZabbixSender__get_response(conn)), case['output'],
+            self.assertEqual(json.dumps(sender._Sender__get_response(conn)), case['output'],
                              f"unexpected output with input data: {case['input']}")
 
         with self.assertRaises(json.decoder.JSONDecodeError,
                                msg="expected JSONDecodeError exception hasn't been raised"):
-            sender = ZabbixSender()
+            sender = Sender()
             conn = ConnectTest(b'ZBXD\x01\x04\x00\x00\x00\x04\x00\x00\x00test')
-            sender._ZabbixSender__get_response(conn)
+            sender._Sender__get_response(conn)
 
-        with self.assertRaises(ZabbixProcessingException,
-                               msg="expected ZabbixProcessingException exception hasn't been raised"):
-            sender = ZabbixSender()
+        with self.assertRaises(ProcessingError,
+                               msg="expected ProcessingError exception hasn't been raised"):
+            sender = Sender()
             conn = ConnectTest(b'test')
-            sender._ZabbixSender__get_response(conn)
+            sender._Sender__get_response(conn)
 
-        with self.assertRaises(ZabbixProcessingException,
-                               msg="expected ZabbixProcessingException exception hasn't been raised"):
-            sender = ZabbixSender()
+        with self.assertRaises(ProcessingError,
+                               msg="expected ProcessingError exception hasn't been raised"):
+            sender = Sender()
             conn = ConnectTest(b'ZBXD\x04\x04\x00\x00\x00\x04\x00\x00\x00test')
-            sender._ZabbixSender__get_response(conn)
+            sender._Sender__get_response(conn)
 
-        with self.assertRaises(ZabbixProcessingException,
-                               msg="expected ZabbixProcessingException exception hasn't been raised"):
-            sender = ZabbixSender()
-            conn = ConnectTest(b'ZBXD\x05\x04\x00\x00\x00\x04\x00\x00\x00test')
-            sender._ZabbixSender__get_response(conn)
+        with self.assertRaises(ProcessingError,
+                               msg="expected ProcessingError exception hasn't been raised"):
+            sender = Sender()
+            conn = ConnectTest(b'ZBXD\x00\x04\x00\x00\x00\x04\x00\x00\x00test')
+            sender._Sender__get_response(conn)
+
+        with self.assertRaises(json.decoder.JSONDecodeError,
+                               msg="expected ProcessingError exception hasn't been raised"):
+            sender = Sender()
+            conn = ConnectTest(b'ZBXD\x03\x00\x00\x00\x00\x02\x00\x00\x00{}')
+            sender._Sender__get_response(conn)
 
     def test_send(self):
         """Tests send method in different cases"""
@@ -199,57 +208,51 @@ class TestZabbixSender(unittest.TestCase):
         test_cases = [
             {
                 'input': {}, 'total': 5, 'failed': 2,
-                'output': json.dumps([
-                    {"processed": 3, "failed": 2, "total": 5, "time": "0.000100", "chunk": 1}
-                ])
+                'output': json.dumps({"processed": 3, "failed": 2, "total": 5, "time": "0.000100", "chunk": 1})
             },
             {
                 'input': {'chunk_size': 10}, 'total': 25, 'failed': 4,
-                'output': json.dumps([
-                    {"processed": 6, "failed": 4, "total": 10, "time": "0.000100", "chunk": 1},
-                    {"processed": 10, "failed": 0, "total": 10, "time": "0.000100", "chunk": 2},
-                    {"processed": 5, "failed": 0, "total": 5, "time": "0.000100", "chunk": 3}
-                ])
+                'output': json.dumps({"processed": 21, "failed": 4, "total": 25, "time": "0.000300", "chunk": 3})
             }
         ]
 
         def mock_chunk_send(self, items):
             info = {
-                'processed': len([i for i in items if i]),
-                'failed': len([i for i in items if not i]),
+                'processed': len([json.loads(i.value) for i in items if json.loads(i.value)]),
+                'failed': len([json.loads(i.value) for i in items if not json.loads(i.value)]),
                 'total': len(items),
                 'seconds spent': '0.000100'
             }
-            result = {
+            result = {"127.0.0.1:10051": {
                 'response': 'success',
                 'info': '; '.join([f"{k}: {v}" for k,v in info.items()])
-            }
+            }}
 
             return result
 
         for case in test_cases:
             with patch.multiple(
-                    ZabbixSender,
-                    _ZabbixSender__chunk_send=mock_chunk_send):
+                    Sender,
+                    _Sender__chunk_send=mock_chunk_send):
 
                 items = []
-                sender = ZabbixSender(**case['input'])
+                sender = Sender(**case['input'])
                 failed_counter = case['failed']
                 for _ in range(case['total']):
                     if failed_counter > 0:
-                        items.append(False)
+                        items.append(ItemValue('host', 'key', 'false'))
                         failed_counter -= 1
                     else:
-                        items.append(True)
+                        items.append(ItemValue('host', 'key', 'true'))
                 resp = sender.send(items)
 
-                self.assertEqual(str(resp), case['output'],
+                self.assertEqual(str(resp['127.0.0.1:10051']), case['output'],
                                  f"unexpected output with input data: {case['input']}")
 
                 self.assertEqual(str(resp), repr(resp),
                                  f"unexpected output with input data: {case['input']}")
 
-                for item in resp:
+                for item in resp.values():
                     try:
                         processed = item.processed
                         failed = item.failed
@@ -262,12 +265,12 @@ class TestZabbixSender(unittest.TestCase):
         def mock_chunk_send_empty(self, items):
             return {}
 
-        with patch.multiple(ZabbixSender,
-                            _ZabbixSender__chunk_send=mock_chunk_send_empty):
-            with self.assertRaises(ZabbixProcessingException,
-                                   msg="expected ZabbixProcessingException exception hasn't been raised"):
-                sender = ZabbixSender()
-                resp = sender.send_value('test', 'test', 1)    
+        with patch.multiple(Sender,
+                            _Sender__chunk_send=mock_chunk_send_empty):
+            sender = Sender()
+            resp = sender.send_value('test', 'test', 1)
+            self.assertEqual(str(resp), '{}',
+                                 f"unexpected output with input data: {case['input']}")
 
     def test_send_value(self):
         """Tests send_value method in different cases"""
@@ -288,26 +291,26 @@ class TestZabbixSender(unittest.TestCase):
                 'total': len(items),
                 'seconds spent': '0.000100'
             }
-            result = {
+            result = {"127.0.0.1:10051": {
                 'response': 'success',
                 'info': '; '.join([f"{k}: {v}" for k,v in info.items()])
-            }
+            }}
 
             return result
 
         for case in test_cases:
             with patch.multiple(
-                    ZabbixSender,
-                    _ZabbixSender__chunk_send=mock_chunk_send):
+                    Sender,
+                    _Sender__chunk_send=mock_chunk_send):
 
-                sender = ZabbixSender()
+                sender = Sender()
                 resp = sender.send_value(**case['input'])
 
-                self.assertEqual(str(resp), case['output'],
+                self.assertEqual(str(resp['127.0.0.1:10051']), case['output'],
                                  f"unexpected output with input data: {case['input']}")
 
 
-class TestZabbixCluster(unittest.TestCase):
+class TestCluster(unittest.TestCase):
     """Test cases for Zabbix Cluster object"""
 
     def test_parsing(self):
@@ -331,13 +334,13 @@ class TestZabbixCluster(unittest.TestCase):
         ]
 
         for case in test_cases:
-            cluster = ZabbixCluster(case['input'])
+            cluster = Cluster(case['input'])
 
             self.assertEqual(str(cluster), case['clusters'],
                              f"unexpected output with input data: {case['input']}")
 
 
-class TestZabbixItem(unittest.TestCase):
+class TestItemValue(unittest.TestCase):
     """Test cases for Zabbix Item object"""
 
     def test_parsing(self):
@@ -378,7 +381,7 @@ class TestZabbixItem(unittest.TestCase):
 
         for case in test_cases:
             try:
-                item = ZabbixItem(**case['input'])
+                item = ItemValue(**case['input'])
             except ValueError:
                 if not case['raised']:
                     self.fail(f"raised unexpected ValueError for input data: {case['input']}")
