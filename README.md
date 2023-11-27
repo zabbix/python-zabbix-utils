@@ -53,11 +53,11 @@ api = ZabbixAPI(url="127.0.0.1")
 api.login(user="User", password="zabbix")
 
 users = api.user.get(
-    output=['userid', 'alias']
+    output=['userid','name']
 )
 
 for user in users:
-    print(user['alias'])
+    print(user['name'])
 
 api.logout()
 ```
@@ -71,11 +71,11 @@ api = ZabbixAPI(url="127.0.0.1")
 api.login(token="xxxxxxxx")
 
 users = api.user.get(
-    output=['userid', 'alias']
+    output=['userid','name']
 )
 
 for user in users:
-    print(user['alias'])
+    print(user['name'])
 
 api.logout()
 ```

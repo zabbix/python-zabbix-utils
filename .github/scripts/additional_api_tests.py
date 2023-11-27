@@ -71,7 +71,7 @@ class IntegrationAPITest(unittest.TestCase):
         users = None
         if self.api:
             users = self.api.user.get(
-                output=['userid', 'alias']
+                output=['userid', 'name']
             )
         self.assertEqual(type(users), list, "Request user.get was going wrong")
 

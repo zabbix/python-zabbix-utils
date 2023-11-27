@@ -19,14 +19,14 @@ else:
     # If Zabbix API version is older than 5.4, use traditional username and password authentication
     api.login(user=ZABBIX_USER, password=ZABBIX_PASSWORD)
 
-# Retrieve a list of users from the Zabbix server, including their user ID and alias
+# Retrieve a list of users from the Zabbix server, including their user ID and name
 users = api.user.get(
-    output=['userid', 'alias']
+    output=['userid', 'name']
 )
 
-# Print the aliases of the retrieved users
+# Print the names of the retrieved users
 for user in users:
-    print(user['alias'])
+    print(user['name'])
 
 # Logout to release the Zabbix API session
 api.logout()

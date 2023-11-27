@@ -1,8 +1,10 @@
+import re
 import setuptools
 from zabbix_utils.version import __version__
 
 with open("README.md", "r", encoding="utf-8") as fh:
-    long_description = fh.read()
+    regexp = r'(?<=##)\s*Get started\n*(^\*.*\n){1,10}\n*##'
+    long_description = re.sub(regexp, '', fh.read(), flags=re.M)
 
 setuptools.setup(
     name="zabbix_utils",
@@ -28,7 +30,7 @@ setuptools.setup(
         'Bug Tracker': 'https://github.com/zabbix/python-zabbix-utils/issues'
     },
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
