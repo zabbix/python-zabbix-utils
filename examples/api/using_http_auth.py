@@ -13,14 +13,14 @@ api = ZabbixAPI(
 # Login to the Zabbix API using provided user credentials
 api.login(user="Admin", password="zabbix")
 
-# Retrieve a list of users from the Zabbix server, including their user ID and alias
+# Retrieve a list of users from the Zabbix server, including their user ID and name
 users = api.user.get(
-    output=['userid', 'alias']
+    output=['userid', 'name']
 )
 
-# Print the aliases of the retrieved users
+# Print the names of the retrieved users
 for user in users:
-    print(user['alias'])
+    print(user['name'])
 
 # Logout to release the Zabbix API session
 api.logout()

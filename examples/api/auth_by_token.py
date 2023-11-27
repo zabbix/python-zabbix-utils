@@ -10,11 +10,11 @@ ZABBIX_AUTH = {
 # Create an instance of the ZabbixAPI class with the specified authentication details
 api = ZabbixAPI(**ZABBIX_AUTH)
 
-# Retrieve a list of users, including their user ID and alias
+# Retrieve a list of users, including their user ID and name
 users = api.user.get(
-    output=['userid', 'alias']
+    output=['userid', 'name']
 )
 
-# Print the aliases of the retrieved users
+# Print the names of the retrieved users
 for user in users:
-    print(user['alias'])
+    print(user['name'])

@@ -48,7 +48,7 @@ class CompatibilityAPITest(unittest.TestCase):
             type(resp), dict, "Request user.checkAuthentication was going wrong")
 
         users = self.zapi.user.get(
-            output=['userid', 'alias']
+            output=['userid', 'name']
         )
         self.assertEqual(type(users), list, "Request user.get was going wrong")
 

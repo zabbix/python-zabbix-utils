@@ -59,7 +59,7 @@ class IntegrationAPITest(unittest.TestCase):
         users = None
         if self.zapi:
             users = self.zapi.user.get(
-                output=['userid', 'alias']
+                output=['userid', 'name']
             )
         self.assertEqual(type(users), list, "Request user.getter was going wrong")
 
