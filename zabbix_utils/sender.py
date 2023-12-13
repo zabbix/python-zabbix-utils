@@ -38,6 +38,7 @@ except ImportError:
     from typing_extensions import Self
 
 from .logger import EmptyHandler
+from .common import ZabbixProtocol
 from .exceptions import ProcessingError
 
 log = logging.getLogger(__name__)
@@ -107,6 +108,7 @@ class TrapperResponse():
 
         Args:
             response (dict): Raw response from Zabbix.
+            chunk (Union[int, None], optional): Chunk number. Defaults to `None`.
         """
 
         resp = self.parse(response)
@@ -198,7 +200,7 @@ class ItemValue():
         self.key = str(key)
         self.value = str(value)
         self.clock = None
-        self.ns = None 
+        self.ns = None
 
         # Validate and set clock value if provided.
         if clock is not None:
@@ -264,8 +266,8 @@ class Node():
         return iter([self.address, self.port])
 
     def __str__(self) -> str:
-        # Convert Node object to a JSON-formatted string.
-        return json.dumps(f"{self.address}:{self.port}")
+        # Convert Node object to a string.
+        return f"{self.address}:{self.port}"
 
     def __repr__(self) -> str:
         # Represent Node object as a string.
@@ -329,13 +331,15 @@ class Sender():
         source_ip (str, optional): IP from which to establish connection. Defaults to `None`.
         chunk_size (int, optional): Number of packets in one chunk. Defaults to `250`.
         socket_wrapper (Callable, optional): Func(`conn`,`tls`) to wrap socket. Defaults to `None`.
+        compression (bool, optional): Specifying compression use. Defaults to `False`.
         config_path (str, optional): Path to Zabbix agent configuration file. Defaults to \
 `/etc/zabbix/zabbix_agentd.conf`.
     """
 
-    def __init__(self, server: str = '127.0.0.1', port: int = 10051, use_config: bool = False,
-                 timeout: int = 10, use_ipv6: bool = False, source_ip: Union[str, None] = None,
-                 chunk_size: int = 250, socket_wrapper: Union[Callable, None] = None,
+    def __init__(self, server: str = '127.0.0.1', port: int = 10051,
+                 use_config: bool = False, timeout: int = 10, use_ipv6: bool = False,
+                 source_ip: Union[str, None] = None, chunk_size: int = 250,
+                 socket_wrapper: Union[Callable, None] = None, compression: bool = False,
                  config_path: Union[str, None] = '/etc/zabbix/zabbix_agentd.conf'):
         self.timeout = timeout
         self.use_ipv6 = use_ipv6
@@ -343,6 +347,7 @@ class Sender():
 
         self.source_ip = None
         self.chunk_size = chunk_size
+        self.compression = compression
 
         # Validate and store the socket_wrapper function if provided.
         if socket_wrapper is not None:
@@ -403,42 +408,10 @@ class Sender():
 
     def __get_response(self, conn: socket) -> Union[str, None]:
         # Receive and parse the response from the Zabbix server/proxy.
-        header_size = 13
-        response_header = self.__receive(conn, header_size)
-
-        log.debug('Zabbix response header: %s', response_header)
-
-        # Check if the received header is a valid Zabbix response.
-        if (not response_header.startswith(b'ZBXD') or
-                len(response_header) != header_size):
-            log.debug('Unexpected response was received from Zabbix.')
-            raise ProcessingError('Unexpected response was received from Zabbix.')
-
-        # Unpack the header to extract information about the response.
-        flags, datalen, reserved = struct.unpack('<BII', response_header[4:])
-
-        # Check the flags to determine how to interpret the response length.
-        if flags & 0x01:
-            response_len = datalen
-        elif flags & 0x02:
-            response_len = reserved
-        elif flags & 0x04:
-            raise ProcessingError(
-                'A large packet flag was received. '
-                'Current module doesn\'t support large packets.'
-            )
-        else:
-            raise ProcessingError(
-                'Unexcepted flags were received. '
-                'Check debug log for more information.'
-            )
-
-        # Receive the response body from the Zabbix agent.
-        response_body = self.__receive(conn, response_len)
-
-        # Attempt to parse the response body as JSON using the UTF-8 encoding.
         try:
-            result = json.loads(response_body.decode("utf-8"))
+            result = json.loads(
+                ZabbixProtocol.parse_packet(conn, log, self.__receive, ProcessingError)
+            )
         except json.decoder.JSONDecodeError as err:
             log.debug('Unexpected response was received from Zabbix.')
             raise err
@@ -447,30 +420,13 @@ class Sender():
 
         return result
 
-    def __create_packet(self, items: list, compressed_size: Union[int, None] = None) -> bytes:
-        # Convert the list of ItemValue objects into a JSON-encoded request.
+    def __create_packet(self, items: list) -> bytes:
         request = json.dumps({
             "request": "sender data",
             "data": [i.to_json() for i in items]
-        }, ensure_ascii=False).encode("utf-8")
+        }, ensure_ascii=False)
 
-        # Determine the header parameters based on whether compression is used.
-        if compressed_size is None:
-            flags = 0x01
-            datalen = len(request)
-            reserved = 0
-        else:
-            flags = 0x02
-            datalen = compressed_size
-            reserved = len(request)
-
-        # Pack the header into a binary format and concatenate it with the request.
-        header = struct.pack('<4sBII', b'ZBXD', flags, datalen, reserved)
-        packet = header + request
-
-        log.debug('Content of the packet: %s', packet)
-
-        return packet
+        return ZabbixProtocol.create_packet(request.encode("utf-8"), log, self.compression)
 
     def __chunk_send(self, items: list) -> dict:
         responses = {}

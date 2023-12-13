@@ -72,10 +72,14 @@ class TestGetter(unittest.TestCase):
 
         test_cases = [
             {'input': b'ZBXD\x01\x04\x00\x00\x00\x04\x00\x00\x00test', 'output': 'test'},
-            {'input': b'ZBXD\x01\x14\x00\x00\x00\x00\x00\x00\x00test_creating_packet', 'output': 'test_creating_packet'},
-            {'input': b'ZBXD\x02\x00\x00\x00\x00\x15\x00\x00\x00test_compression_flag', 'output': 'test_compression_flag'},
-            {'input': b'ZBXD\x03\x15\x00\x00\x00\x00\x00\x00\x00test_both_flags', 'output': 'test_both_flags'},
-            {'input': b'ZBXD\x03\x00\x00\x00\x00\x15\x00\x00\x00test_both_flags', 'output': ''}
+            {
+                'input': b'ZBXD\x01\x14\x00\x00\x00\x00\x00\x00\x00test_creating_packet',
+                'output': 'test_creating_packet'
+            },
+            {
+                'input': b'ZBXD\x03\x1d\x00\x00\x00\x15\x00\x00\x00x\x9c+I-.\x89O\xce\xcf-(J-.\xce\xcc\xcf\x8bO\xcbIL\x07\x00a\xd1\x08\xcb',
+                'output': 'test_compression_flag'
+            }
         ]
 
         class ConnectTest():

@@ -22,12 +22,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-import struct
 import socket
 import logging
 from typing import Callable, Union
 
 from .logger import EmptyHandler
+from .common import ZabbixProtocol
 from .exceptions import ProcessingError
 
 log = logging.getLogger(__name__)
@@ -67,9 +67,7 @@ class Getter():
                 raise TypeError('Value "socket_wrapper" should be a function.')
 
     def __create_packet(self, data: str) -> bytes:
-        # Create a Zabbix packet from the provided data.
-        data = data.encode("utf-8")
-        packet = struct.pack('<4sBII', b'ZBXD', 0x01, len(data), 0) + data
+        packet = ZabbixProtocol.create_packet(data.encode("utf-8"), log)
         log.debug('Content of the packet: %s', packet)
 
         return packet
@@ -88,41 +86,9 @@ class Getter():
 
     def __get_response(self, conn: socket) -> Union[str, None]:
         # Receive and parse the response from the Zabbix agent.
-        header_size = 13
-        response_header = self.__receive(conn, header_size)
-        log.debug('Zabbix response header: %s', response_header)
+        result = ZabbixProtocol.parse_packet(conn, log, self.__receive, ProcessingError)
 
-        # Check if the received header is a valid Zabbix response.
-        if (not response_header.startswith(b'ZBXD') or
-                len(response_header) != header_size):
-            log.debug('Unexpected response was received from Zabbix.')
-            raise ProcessingError('Unexpected response was received from Zabbix.')
-
-        # Unpack the header to extract information about the response.
-        flags, datalen, reserved = struct.unpack('<BII', response_header[4:])
-
-        # Determine the length of the response body based on the flags.
-        if flags & 0x01:
-            response_len = datalen
-        elif flags & 0x02:
-            response_len = reserved
-        elif flags & 0x04:
-            raise ProcessingError(
-                'A large packet flag was received. '
-                'Current module doesn\'t support large packets.'
-            )
-        else:
-            raise ProcessingError(
-                'Unexcepted flags were received. '
-                'Check debug log for more information.'
-            )
-
-        # Receive the response body from the Zabbix agent.
-        # and decode to a UTF-8 string
-        response_body = self.__receive(conn, response_len)
-        result = response_body.decode("utf-8")
-
-        log.debug('Zabbix response body: %s', result)
+        log.debug('Received data: %s', result)
 
         return result
 
