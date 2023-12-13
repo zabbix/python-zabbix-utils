@@ -425,19 +425,15 @@ class Sender():
     def __chunk_send(self, items: list) -> dict:
         responses = {}
 
-        # Create a Zabbix packet using the provided data.
         packet = self.__create_packet(items)
 
-        # Iterate through Zabbix clusters.
         for cluster in self.clusters:
             active_node = None
 
-            # Iterate through nodes in the cluster and connect to each.
             for i, node in enumerate(cluster.nodes):
 
                 log.debug('Trying to send data to %s', node)
 
-                # Create a socket based on the IP version specified.
                 try:
                     if self.use_ipv6:
                         connection = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
@@ -451,18 +447,15 @@ class Sender():
                 if self.source_ip:
                     connection.bind((self.source_ip, 0,))
 
-                # Attempt to establish a connection to the current node.
                 try:
                     connection.connect((node.address, node.port))
                 except (TimeoutError, socket.timeout):
-                    # Handle a timeout error during the connection.
                     log.debug(
                         'The connection to %s timed out after %d seconds',
                         node,
                         self.timeout
                     )
                 except (ConnectionRefusedError, socket.gaierror) as err:
-                    # Handle an error when the connection is refused.
                     log.debug(
                         'An error occurred while trying to connect to %s: %s',
                         node,
@@ -475,7 +468,6 @@ class Sender():
                     active_node = node
                     break
 
-            # Check if all connection attempts failed.
             if active_node is None:
                 log.error(
                     'Couldn\'t connect to all of cluster nodes: %s',
@@ -490,11 +482,9 @@ class Sender():
             if self.socket_wrapper is not None:
                 connection = self.socket_wrapper(connection, self.tls)
 
-            # Send the packet through the established connection.
             try:
                 connection.sendall(packet)
             except (TimeoutError, socket.timeout) as err:
-                # Handle a timeout error during the packet sending.
                 log.error(
                     'The connection to %s timed out after %d seconds while trying to send',
                     active_node,
@@ -503,7 +493,6 @@ class Sender():
                 connection.close()
                 raise err
             except (OSError, socket.error) as err:
-                # Handle a general socket error during the packet sending.
                 log.warning(
                     'An error occurred while trying to send to %s: %s',
                     active_node,
@@ -512,7 +501,6 @@ class Sender():
                 connection.close()
                 raise err
 
-            # Receive the response from the Zabbix server/proxy.
             try:
                 response = self.__get_response(connection)
             except ConnectionResetError as err:
@@ -520,13 +508,11 @@ class Sender():
                 raise err
             log.debug('Response from %s: %s', active_node, response)
 
-            # Check if the response indicates success; otherwise, raise an exception.
             if response and response.get('response') != 'success':
                 raise socket.error(response)
 
             responses[active_node] = response
 
-            # Close the connection after processing the cluster.
             try:
                 connection.close()
             except socket.error:
@@ -551,11 +537,9 @@ class Sender():
 
         result = {}
 
-        # Send a chunk containing a single ItemValue.
         resp_by_node = self.__chunk_send([ItemValue(host, key, value, clock, ns)])
 
         for cluster, resp in resp_by_node.items():
-            # Store response as a TrapperResponse object for each cluster.
             if cluster not in result:
                 result[cluster] = TrapperResponse()
             result[cluster].add(resp)
@@ -586,7 +570,6 @@ It must be a list of ItemValue objects: {json.dumps(items)}")
         chunks = [items[i:i + self.chunk_size] for i in range(0, len(items), self.chunk_size)]
         for i, chunk in enumerate(chunks):
 
-            # Send the chunk of items.
             resp_by_node = self.__chunk_send(chunk)
 
             for node, resp in resp_by_node.items():

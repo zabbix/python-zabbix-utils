@@ -88,16 +88,12 @@ class APIObject():
             if args and kwargs:
                 raise TypeError("Only args or kwargs should be used.")
 
-            # Create the Zabbix API method string by combining the object name and method name.
             method = f'{self.object}.{name}'
 
             log.debug("Executing %s method", method)
 
-            # Determine if authentication is needed based on whether the method requires it.
             need_auth = method not in ModuleUtils.UNAUTH_METHODS
 
-            # Call the Zabbix API method using the parent's send_api_request method.
-            # Retrieve the 'result' from the API response.
             return self.parent.send_api_request(
                 method,
                 args or kwargs,
@@ -120,6 +116,7 @@ class APIVersion():
 
     def __getitem__(self, index: int) -> Any:
         # Get a symbol from the raw version string by index
+        # For compatibility with using Zabbix version as a string
         return self.__raw[index]
 
     def is_lts(self) -> bool:
@@ -162,15 +159,12 @@ class APIVersion():
         return list(map(int, match.groups()))
 
     def __str__(self) -> str:
-        # Return the raw version string when converted to a string.
         return self.__raw
 
     def __repr__(self) -> str:
-        # Return the raw version string when represented.
         return self.__raw
 
     def __eq__(self, other: Union[float, str]) -> bool:
-        # Check equality with another APIVersion.
         if isinstance(other, float):
             return self.major == other
         if isinstance(other, str):
@@ -181,7 +175,6 @@ class APIVersion():
         )
 
     def __gt__(self, other: Union[float, str]) -> bool:
-        # Check if greater than another APIVersion
         if isinstance(other, float):
             return self.major > other
         if isinstance(other, str):
@@ -192,7 +185,6 @@ class APIVersion():
         )
 
     def __lt__(self, other: Union[float, str]) -> bool:
-        # Check if less than another APIVersion
         if isinstance(other, float):
             return self.major < other
         if isinstance(other, str):
@@ -203,15 +195,12 @@ class APIVersion():
         )
 
     def __ne__(self, other: Any) -> bool:
-        # Check if not equal to another APIVersion
         return not self.__eq__(other)
 
     def __ge__(self, other: Any) -> bool:
-        # Check if greater than or equal to another APIVersion
         return not self.__lt__(other)
 
     def __le__(self, other: Any) -> bool:
-        # Check if less than or equal to another APIVersion
         return not self.__gt__(other)
 
 
@@ -249,14 +238,12 @@ class ZabbixAPI():
         self.validate_certs = validate_certs
         self.timeout = timeout
 
-        # Enable Basic Authentication if both username and password are provided.
         if http_user and http_password:
             self.__basic_auth(http_user, http_password)
 
         # Check version compatibility
         self.__check_version(skip_version_check)
 
-        # Perform login if token, username or password is provided.
         if token or user or password:
             self.login(token, user, password)
 
@@ -292,7 +279,7 @@ class ZabbixAPI():
             ModuleUtils.HIDING_MASK
         )
 
-        # Enable Basic Authentication by encoding username and password in base64.
+        # Enable Basic Authentication
         self.__basic_cred = base64.b64encode(
             f"{user}:{password}".encode()
         ).decode()
@@ -328,7 +315,7 @@ class ZabbixAPI():
             password (str, optional): Zabbix API user's password. Defaults to `None`.
         """
 
-        # Login using either token or username/password combination based on Zabbix API version.
+        # Login using either token or username/password based on Zabbix API version.
         if token:
             if self.version < 5.4:
                 raise APINotSupported(
@@ -347,7 +334,6 @@ class ZabbixAPI():
         if not password:
             raise ProcessingError("User password is missing")
 
-        # Use different parameter names for login based on Zabbix API version.
         if self.version < 5.4:
             user_cred = {
                 "user": user,
@@ -370,7 +356,6 @@ class ZabbixAPI():
     def logout(self) -> None:
         """Logout from Zabbix API."""
 
-        # Logout from Zabbix API, clearing the session ID.
         if self.__session_id:
             if self.__use_token:
                 self.__session_id = None
@@ -390,7 +375,6 @@ class ZabbixAPI():
             bool: User authentication status (`True`, `False`)
         """
 
-        # Check authentication session using either token or current session ID.
         if not self.__session_id:
             log.debug("You're not logged in Zabbix API")
             return False
@@ -421,7 +405,6 @@ class ZabbixAPI():
             dict: Dictionary with Zabbix API response.
         """
 
-        # Prepare the request JSON with necessary headers for Zabbix API.
         request_json = {
             'jsonrpc': '2.0',
             'method': method,
@@ -435,7 +418,6 @@ class ZabbixAPI():
             'User-Agent': f"{__name__}/{__version__}"
         }
 
-        # Add authentication information to the request if needed.
         if need_auth:
             if not self.__session_id:
                 raise ProcessingError("You're not logged in Zabbix API")
@@ -453,7 +435,6 @@ class ZabbixAPI():
             json.dumps(request_json)
         )
 
-        # Prepare the request object.
         req = ul.Request(
             self.url,
             data=json.dumps(request_json).encode("utf-8"),
@@ -470,7 +451,6 @@ class ZabbixAPI():
         else:
             ctx = None
 
-        # Send the request and parse the response JSON.
         try:
             resp = ul.urlopen(req, context=ctx)
             resp_json = json.loads(resp.read().decode('utf-8'))
@@ -479,7 +459,6 @@ class ZabbixAPI():
         except ValueError as err:
             raise ProcessingError("Unable to parse json:", err) from None
 
-        # Log the response details before returning.
         if method not in ModuleUtils.FILES_METHODS:
             log.debug(
                 "Received response body: %s",
@@ -494,7 +473,6 @@ class ZabbixAPI():
                 json.dumps(debug_json, indent=4, separators=(',', ': '))
             )
 
-        # Raise an exception if the response contains an error.
         if 'error' in resp_json:
             err = resp_json['error'].copy()
             err['body'] = json.dumps(request_json)
@@ -503,7 +481,8 @@ class ZabbixAPI():
         return resp_json
 
     def __check_version(self, skip_check: bool) -> None:
-        # Check if the Zabbix API version is supported by the library.
+        # Check if the Zabbix API version is not supported by the library.
+
         skip_check_help = "If you're sure zabbix_utils will work properly with your current \
 Zabbix version you can skip this check by \
 specifying skip_version_check=True when create ZabbixAPI object."

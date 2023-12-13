@@ -60,7 +60,6 @@ class Getter():
         self.use_ipv6 = use_ipv6
         self.source_ip = source_ip
 
-        # Validate and store the socket_wrapper function if provided.
         self.socket_wrapper = socket_wrapper
         if self.socket_wrapper:
             if not isinstance(self.socket_wrapper, Callable):
@@ -75,7 +74,6 @@ class Getter():
     def __receive(self, conn: socket, size: int) -> bytes:
         buf = b''
 
-        # Receive data from the socket until the specified size is reached.
         while True:
             chunk = conn.recv(size - len(buf))
             if not chunk:
@@ -104,14 +102,12 @@ class Getter():
 
         packet = self.__create_packet(key)
 
-        # Create a socket based on the IP version specified.
         try:
             if self.use_ipv6:
                 connection = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
             else:
                 connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         except socket.error:
-            # Handle an error if there's an issue creating the socket.
             raise ProcessingError(
                 f"Error creating socket for {self.host}:{self.port}") from None
 
@@ -120,14 +116,12 @@ class Getter():
         if self.source_ip:
             connection.bind((self.source_ip, 0,))
 
-        # Connect to the Zabbix agent and send the packet.
         try:
             connection.connect((self.host, self.port))
             if self.socket_wrapper is not None:
                 connection = self.socket_wrapper(connection)
             connection.sendall(packet)
         except (TimeoutError, socket.timeout) as err:
-            # Handle a timeout error during the connection.
             log.error(
                 'The connection to %s timed out after %d seconds',
                 f"{self.host}:{self.port}",
@@ -136,7 +130,6 @@ class Getter():
             connection.close()
             raise err
         except (ConnectionRefusedError, socket.gaierror) as err:
-            # Handle an error when the connection is refused.
             log.error(
                 'An error occurred while trying to connect to %s: %s',
                 f"{self.host}:{self.port}",
@@ -145,7 +138,6 @@ class Getter():
             connection.close()
             raise err
         except (OSError, socket.error) as err:
-            # Handle a general socket error during the connection.
             log.warning(
                 'An error occurred while trying to send to %s: %s',
                 f"{self.host}:{self.port}",
@@ -154,7 +146,6 @@ class Getter():
             connection.close()
             raise err
 
-        # Retrieve and handle the response from the Zabbix agent.
         try:
             response = self.__get_response(connection)
         except ConnectionResetError as err:
@@ -163,7 +154,6 @@ class Getter():
             raise err
         log.debug('Response from [%s:%s]: %s', self.host, self.port, response)
 
-        # Close the connection to the Zabbix agent.
         try:
             connection.close()
         except socket.error:

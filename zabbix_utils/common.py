@@ -45,7 +45,7 @@ class ModuleUtils():
     # Methods returning files contents
     FILES_METHODS = ('configuration.export',)
 
-    # List of private fields
+    # List of private fields and regular expressions to hide them
     PRIVATE_FIELDS = {
         "token": "[A-Za-z0-9]+",
         "auth": "[A-Za-z0-9]+",
@@ -90,8 +90,8 @@ Defaults to 4.
         if show_len == 0 or len(string) <= (len(cls.HIDING_MASK) + show_len*2):
             return cls.HIDING_MASK
 
-        # Return the string with the the hiding mask, surrounded by specified number of characters
-        # shown on each side of the string.
+        # Return the string with the hiding mask, surrounded by the specified number of characters
+        # to display on each side of the string.
         return f"{string[:show_len]}{cls.HIDING_MASK}{string[-show_len:]}"
 
     @classmethod
@@ -106,18 +106,15 @@ Defaults to 4.
             str: Message text without private data.
         """
 
-        # Use provided fields or default to class-level private fields.
         private_fields = fields if fields else cls.PRIVATE_FIELDS
 
         def gen_repl(match: Match):
             return cls.mask_secret(match.group(0))
 
-        # Create a regular expression pattern by joining seeking regexps for private fields.
         pattern = re.compile(
             r"|".join([rf"((?<=[\"']{f}[\"']:\s[\"']){r})" for f, r in private_fields.items()])
         )
 
-        # Use the regular expression pattern to replace occurrences of private data in the message.
         return re.sub(pattern, gen_repl, message)
 
 
