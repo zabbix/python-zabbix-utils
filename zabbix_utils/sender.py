@@ -261,10 +261,6 @@ class Node():
         except ValueError:
             raise TypeError('Port must be an integer value') from None
 
-    def __iter__(self) -> list:
-        # Allow iterating over the Node object, returning address and port.
-        return iter([self.address, self.port])
-
     def __str__(self) -> str:
         # Convert Node object to a string.
         return f"{self.address}:{self.port}"
@@ -300,23 +296,21 @@ class Cluster():
 
     def __str__(self) -> str:
         # Convert Cluster object to a JSON-formatted string.
-        return json.dumps(list(map(list, self.__nodes)))
+        return json.dumps([(node.address, node.port) for node in self.__nodes])
 
     def __repr__(self) -> str:
         # Represent Cluster object as a string.
         return self.__str__()
 
     @property
-    def nodes(self) -> Node:
-        """Returns Node objects.
+    def nodes(self) -> list:
+        """Returns list of Node objects.
 
-        Yields:
-            Node One Zabbix node object
+        Returns:
+            list List of Node objects
         """
 
-        # Provide an iterator over the Node objects in the cluster.
-        for node in self.__nodes:
-            yield node
+        return self.__nodes
 
 
 class Sender():
@@ -439,7 +433,7 @@ class Sender():
             active_node = None
 
             # Iterate through nodes in the cluster and connect to each.
-            for node in cluster.nodes:
+            for i, node in enumerate(cluster.nodes):
 
                 log.debug('Trying to send data to %s', node)
 
@@ -476,6 +470,8 @@ class Sender():
                     )
                 else:
                     # Connection succeeded
+                    if i > 0:
+                        cluster.nodes[0], cluster.nodes[i] = cluster.nodes[i], cluster.nodes[0]
                     active_node = node
                     break
 
