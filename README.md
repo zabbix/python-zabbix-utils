@@ -76,8 +76,6 @@ users = api.user.get(
 
 for user in users:
     print(user['name'])
-
-api.logout()
 ```
 
 It is possible to specify authentication fields by the following environment variables:
