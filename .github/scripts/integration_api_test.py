@@ -69,11 +69,11 @@ class IntegrationAPITest(unittest.TestCase):
         self.assertEqual(type(users), list, "Request user.get was going wrong")
 
     def test_host_get(self):
-        """Tests getting hosts info works properly using dict format of the object method"""
+        """Tests getting hosts info works properly using suffix"""
 
         hosts = None
         if self.zapi:
-            hosts = self.zapi.host['get'](
+            hosts = self.zapi.host_.get_(
                 output=['hostid', 'host']
             )
         self.assertEqual(type(hosts), list, "Request host.get was going wrong")

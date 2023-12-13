@@ -64,13 +64,6 @@ class APIObject():
         self.object = name
         self.parent = parent
 
-    def __getitem__(self, key: str) -> Callable:
-        # Workaround to use the object as a dict
-        if not isinstance(key, str):
-            raise TypeError("unsupported operand type: must be 'str'")
-
-        return self.__getattr__(key)
-
     def __getattr__(self, name: str) -> Callable:
         """Dynamic creation of an API method.
 
@@ -88,7 +81,7 @@ class APIObject():
             if args and kwargs:
                 raise TypeError("Only args or kwargs should be used.")
 
-            method = f'{self.object}.{name}'
+            method = f"{self.object.removesuffix('_')}.{name.removesuffix('_')}"
 
             log.debug("Executing %s method", method)
 
