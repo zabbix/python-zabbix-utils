@@ -25,7 +25,6 @@
 import re
 import json
 import socket
-import struct
 import logging
 import configparser
 from decimal import Decimal
@@ -520,32 +519,6 @@ class Sender():
 
         return responses
 
-    def send_value(self, host: str, key: str, value: str,
-                   clock: Union[int, None] = None, ns: Union[int, None] = None) -> dict:
-        """Sends one value and receives an answer from Zabbix.
-
-        Args:
-            host (str): Specify host name the item belongs to (as registered in Zabbix frontend).
-            key (str): Specify item key to send value to.
-            value (str): Specify item value.
-            clock (int, optional): Specify time in Unix timestamp format. Defaults to `None`.
-            ns (int, optional): Specify time expressed in nanoseconds. Defaults to `None`.
-
-        Returns:
-            dict: Dictionary of TrapperResponse object for each Node object.
-        """
-
-        result = {}
-
-        resp_by_node = self.__chunk_send([ItemValue(host, key, value, clock, ns)])
-
-        for cluster, resp in resp_by_node.items():
-            if cluster not in result:
-                result[cluster] = TrapperResponse()
-            result[cluster].add(resp)
-
-        return result
-
     def send(self, items: list, merge_responses: bool = True) -> dict:
         """Sends packets and receives an answer from Zabbix.
 
@@ -585,3 +558,23 @@ It must be a list of ItemValue objects: {json.dumps(items)}")
                     result[node].append(TrapperResponse(i+1).add(resp))
 
         return result
+
+    def send_value(self, host: str, key: str,
+                   value: str, clock: Union[int, None] = None,
+                   ns: Union[int, None] = None, merge_responses: bool = True) -> dict:
+        """Sends one value and receives an answer from Zabbix.
+
+        Args:
+            host (str): Specify host name the item belongs to (as registered in Zabbix frontend).
+            key (str): Specify item key to send value to.
+            value (str): Specify item value.
+            clock (int, optional): Specify time in Unix timestamp format. Defaults to `None`.
+            ns (int, optional): Specify time expressed in nanoseconds. Defaults to `None`.
+            merge_responses (bool, optional): Whether to merge all responses data \
+to a single one. Defaults to `True`.
+
+        Returns:
+            dict: Dictionary of TrapperResponse object for each Node object.
+        """
+
+        return self.send([ItemValue(host, key, value, clock, ns)], merge_responses)
