@@ -126,9 +126,17 @@ class Getter():
 
         return result
 
-    def __data_get(self, data: str) -> Union[str, None]:
-        # Create a Zabbix packet using the provided data.
-        packet = self.__create_packet(data)
+    def get(self, key: str) -> Union[str, None]:
+        """Gets item value from Zabbix agent by specified key.
+
+        Args:
+            key (str): Zabbix item key.
+
+        Returns:
+            str: Value from Zabbix agent for specified key.
+        """
+
+        packet = self.__create_packet(key)
 
         # Create a socket based on the IP version specified.
         try:
@@ -196,15 +204,3 @@ class Getter():
             pass
 
         return response
-
-    def get(self, key: str) -> Union[str, None]:
-        """Gets item value from Zabbix agent by specified key.
-
-        Args:
-            key (str): Zabbix item key.
-
-        Returns:
-            str: Value from Zabbix agent for specified key.
-        """
-
-        return self.__data_get(key)
