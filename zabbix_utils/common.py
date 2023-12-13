@@ -112,7 +112,7 @@ Defaults to 4.
             return cls.mask_secret(match.group(0))
 
         pattern = re.compile(
-            r"|".join([rf"((?<=[\"']{f}[\"']:\s[\"']){r})" for f, r in private_fields.items()])
+            r"|".join([rf"(?<=\"{f}\":\s\"){r}" for f, r in private_fields.items()])
         )
 
         return re.sub(pattern, gen_repl, message)
