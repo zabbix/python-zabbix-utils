@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import sys
 import unittest
 
@@ -61,7 +60,17 @@ class IntegrationAPITest(unittest.TestCase):
             users = self.zapi.user.get(
                 output=['userid', 'name']
             )
-        self.assertEqual(type(users), list, "Request user.getter was going wrong")
+        self.assertEqual(type(users), list, "Request user.get was going wrong")
+
+    def test_host_get(self):
+        """Tests getting hosts info works properly using dict format of the object method"""
+
+        hosts = None
+        if self.zapi:
+            hosts = self.zapi.host['get'](
+                output=['hostid', 'host']
+            )
+        self.assertEqual(type(hosts), list, "Request host.get was going wrong")
 
 
 if __name__ == '__main__':

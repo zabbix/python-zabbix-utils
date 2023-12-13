@@ -115,6 +115,29 @@ print(ver.is_lts()) # True
 api.logout()
 ```
 
+ZabbixAPI methods can also be called as a dictionary item:
+```python
+from zabbix_utils import ZabbixAPI
+
+api = ZabbixAPI(url="127.0.0.1")
+api.login(token="xxxxxxxx")
+
+template_source = ''
+with open('template_example.xml', mode='r', encoding='utf-8') as f:
+    template_source = f.read()
+
+response = api.configuration['import'](
+    source=template_source,
+    format="xml",
+    rules={...}
+)
+
+if response:
+    print("Template imported successfully")
+```
+
+It might be useful if the method name is a Python reserved word (e.g.: `import` in `configuration.import()`).
+
 > Please, refer to the [Zabbix API Documentation](https://www.zabbix.com/documentation/current/manual/api/reference) and the [using examples](https://github.com/zabbix/python-zabbix-utils/tree/main/examples/api) for more information.
 
 ##### To work via Zabbix sender protocol

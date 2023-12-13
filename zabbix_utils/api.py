@@ -64,6 +64,13 @@ class APIObject():
         self.object = name
         self.parent = parent
 
+    def __getitem__(self, key: str) -> Callable:
+        # Workaround to use the object as a dict
+        if not isinstance(key, str):
+            raise TypeError("unsupported operand type: must be 'str'")
+
+        return self.__getattr__(key)
+
     def __getattr__(self, name: str) -> Callable:
         """Dynamic creation of an API method.
 
