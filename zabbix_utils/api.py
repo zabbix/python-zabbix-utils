@@ -153,15 +153,13 @@ class APIVersion():
 
     def __parse_version(self, ver: str) -> List[Any]:
         # Parse the version string into a list of integers.
-        regexp = r"^(\d+)\.(\d+)\.(\d+)$"
-        try:
-            result = list(map(int, re.search(regexp, ver).groups()))
-            return result
-        except AttributeError:
-            raise TypeError(
+        match = re.fullmatch(r'(\d+)\.(\d+)\.(\d+)', ver)
+        if match is None:
+            raise ValueError(
                 f"Unable to parse version of Zabbix API: {ver}. " +
                 f"Default '{__max_supported__}.0' format is expected."
             ) from None
+        return list(map(int, match.groups()))
 
     def __str__(self) -> str:
         # Return the raw version string when converted to a string.

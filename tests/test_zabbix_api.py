@@ -317,7 +317,7 @@ class TestAPIVersion(unittest.TestCase):
         for case in test_cases:
             try:
                 ver = APIVersion(case['input'])
-            except TypeError:
+            except ValueError:
                 if not case['raised']:
                     self.fail(f"raised unexpected Exception with input data: {case['input']}")
             else:
@@ -402,7 +402,7 @@ class TestAPIVersion(unittest.TestCase):
                                msg=f"input data={case['input']}"):
             ver != 7
 
-        with self.assertRaises(TypeError,
+        with self.assertRaises(ValueError,
                                msg=f"input data={case['input']}"):
             ver <= '7.0'
 
