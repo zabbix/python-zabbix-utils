@@ -77,12 +77,16 @@ class APIObject():
             Self: Zabbix API method.
         """
 
+        # For compatibility with Python less 3.9 versions
+        def removesuffix(string: str, suffix: str) -> str:
+            return str(string[:-len(suffix)]) if suffix and string.endswith(suffix) else string
+
         def func(*args: Any, **kwargs: Any) -> Any:
             if args and kwargs:
                 raise TypeError("Only args or kwargs should be used.")
 
             # Support '_' suffix to avoid conflicts with python keywords
-            method = f"{self.object.removesuffix('_')}.{name.removesuffix('_')}"
+            method = removesuffix(self.object, '_') + "." + removesuffix(name, '_')
 
             log.debug("Executing %s method", method)
 
