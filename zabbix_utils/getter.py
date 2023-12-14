@@ -65,25 +65,8 @@ class Getter():
             if not isinstance(self.socket_wrapper, Callable):
                 raise TypeError('Value "socket_wrapper" should be a function.')
 
-    def __create_packet(self, data: str) -> bytes:
-        packet = ZabbixProtocol.create_packet(data.encode("utf-8"), log)
-        log.debug('Content of the packet: %s', packet)
-
-        return packet
-
-    def __receive(self, conn: socket, size: int) -> bytes:
-        buf = b''
-
-        while True:
-            chunk = conn.recv(size - len(buf))
-            if not chunk:
-                break
-            buf += chunk
-
-        return buf
-
     def __get_response(self, conn: socket) -> Union[str, None]:
-        result = ZabbixProtocol.parse_packet(conn, log, self.__receive, ProcessingError)
+        result = ZabbixProtocol.parse_packet(conn, log, ProcessingError)
 
         log.debug('Received data: %s', result)
 
@@ -99,7 +82,7 @@ class Getter():
             str: Value from Zabbix agent for specified key.
         """
 
-        packet = self.__create_packet(key)
+        packet = ZabbixProtocol.create_packet(key, log)
 
         try:
             if self.use_ipv6:

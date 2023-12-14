@@ -355,21 +355,10 @@ class Sender():
             config.read_string('[root]\n' + cfg.read())
         self.__read_config(config['root'])
 
-    def __receive(self, conn: socket, size: int) -> bytes:
-        buf = b''
-
-        while len(buf) < size:
-            chunk = conn.recv(size - len(buf))
-            if not chunk:
-                break
-            buf += chunk
-
-        return buf
-
     def __get_response(self, conn: socket) -> Union[str, None]:
         try:
             result = json.loads(
-                ZabbixProtocol.parse_packet(conn, log, self.__receive, ProcessingError)
+                ZabbixProtocol.parse_packet(conn, log, ProcessingError)
             )
         except json.decoder.JSONDecodeError as err:
             log.debug('Unexpected response was received from Zabbix.')
@@ -379,18 +368,16 @@ class Sender():
 
         return result
 
-    def __create_packet(self, items: list) -> bytes:
-        request = json.dumps({
+    def __create_request(self, items: list) -> dict:
+        return {
             "request": "sender data",
             "data": [i.to_json() for i in items]
-        }, ensure_ascii=False)
-
-        return ZabbixProtocol.create_packet(request.encode("utf-8"), log, self.compression)
+        }
 
     def __chunk_send(self, items: list) -> dict:
         responses = {}
 
-        packet = self.__create_packet(items)
+        packet = ZabbixProtocol.create_packet(self.__create_request(items), log, self.compression)
 
         for cluster in self.clusters:
             active_node = None

@@ -23,9 +23,10 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 import re
+import json
 import zlib
 import struct
-from typing import Callable, Match
+from typing import Match, Union
 from textwrap import shorten
 from logging import Logger
 from socket import socket
@@ -125,18 +126,30 @@ class ZabbixProtocol():
     HEADER_SIZE = 13
 
     @classmethod
-    def create_packet(cls, request: bytes, log: Logger,
-                      compression: bool = False) -> bytes:
+    def __prepare_request(cls, data: Union[bytes, str, dict]) -> bytes:
+        if isinstance(data, bytes):
+            return data
+        if isinstance(data, str):
+            return data.encode("utf-8")
+        if isinstance(data, list) or isinstance(data, dict):
+            return json.dumps(data, ensure_ascii=False).encode("utf-8")
+        raise TypeError("Unsupported data type, only 'bytes', 'str' or 'dict' is expected")
+
+    @classmethod
+    def create_packet(cls, payload: Union[bytes, str, dict],
+                      log: Logger, compression: bool = False) -> bytes:
         """Create a packet for sending via the Zabbix protocol.
 
         Args:
-            request (bytes): Payload of the future packet
+            payload (Union[bytes, str, dict]): Payload of the future packet
             log (Logger): Logger object
             compression (bool, optional): Compression use flag. Defaults to `False`.
 
         Returns:
             bytes: Generated Zabbix protocol packet
         """
+
+        request = cls.__prepare_request(payload)
 
         log.debug('Request data: %s', shorten(request.decode("utf-8"), 200, placeholder='...'))
 
@@ -160,14 +173,33 @@ class ZabbixProtocol():
         return packet
 
     @classmethod
-    def parse_packet(cls, conn: socket, log: Logger,
-                     receiver: Callable, exception) -> str:
+    def receive_packet(cls, conn: socket, size: int) -> bytes:
+        """Receive a Zabbix protocol packet.
+
+        Args:
+            conn (socket): Opened socket connection
+            size (int): Expected packet size
+
+        Returns:
+            bytes: Received packet content
+        """
+        buf = b''
+
+        while True:
+            chunk = conn.recv(size - len(buf))
+            if not chunk:
+                break
+            buf += chunk
+
+        return buf
+
+    @classmethod
+    def parse_packet(cls, conn: socket, log: Logger, exception) -> str:
         """Parse a received Zabbix protocol packet.
 
         Args:
             conn (socket): Opened socket connection
             log (Logger): Logger object
-            receiver (Callable): Callback to receive data
             exception: Exception type
 
         Raises:
@@ -177,7 +209,7 @@ class ZabbixProtocol():
             str: Body of the received packet
         """
 
-        response_header = receiver(conn, cls.HEADER_SIZE)
+        response_header = cls.receive_packet(conn, cls.HEADER_SIZE)
         log.debug('Zabbix response header: %s', response_header)
 
         if (not response_header.startswith(cls.ZABBIX_PROTOCOL) or
@@ -201,8 +233,8 @@ class ZabbixProtocol():
             )
         # 0x02 - Using packet compression mode
         if flags & 0x02:
-            response_body = zlib.decompress(receiver(conn, datalen))
+            response_body = zlib.decompress(cls.receive_packet(conn, datalen))
         else:
-            response_body = receiver(conn, datalen)
+            response_body = cls.receive_packet(conn, datalen)
 
         return response_body.decode("utf-8")
