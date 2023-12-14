@@ -83,7 +83,6 @@ class Getter():
         return buf
 
     def __get_response(self, conn: socket) -> Union[str, None]:
-        # Receive and parse the response from the Zabbix agent.
         result = ZabbixProtocol.parse_packet(conn, log, self.__receive, ProcessingError)
 
         log.debug('Received data: %s', result)

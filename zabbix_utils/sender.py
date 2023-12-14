@@ -59,7 +59,6 @@ class TrapperResponse():
         self.__chunk = chunk
 
     def __repr__(self) -> str:
-        # Represent the object as a JSON-formatted string.
         result = {}
         for key, value in self.__dict__.items():
             result[
@@ -78,7 +77,6 @@ class TrapperResponse():
             ProcessingError: Raises if unexpected response received
         """
 
-        # Define patterns for extracting information from the response.
         fields = {
             "processed": ('[Pp]rocessed', r'\d+'),
             "failed": ('[Ff]ailed', r'\d+'),
@@ -86,18 +84,15 @@ class TrapperResponse():
             "time": ('[Ss]econds spent', r'\d+\.\d+')
         }
 
-        # Create a regular expression pattern based on the defined fields.
         pattern = re.compile(
             r";\s+?".join([rf"{r[0]}:\s+?(?P<{k}>{r[1]})" for k, r in fields.items()])
         )
 
-        # Extract 'info' field from the Zabbix response.
         info = response.get('info')
         if not info:
             log.debug('Received unexpected response: %s', response)
             raise ProcessingError(f"Received unexpected response: {response}")
 
-        # Use regular expression to match and extract information from 'info'.
         res = pattern.search(info).groupdict()
 
         return res
@@ -119,7 +114,6 @@ class TrapperResponse():
                 getattr(cls, key) + value
             )
 
-        # Convert values to appropriate types and set them as attributes.
         for k, v in resp.items():
             add_value(
                 self,
@@ -201,7 +195,6 @@ class ItemValue():
         self.clock = None
         self.ns = None
 
-        # Validate and set clock value if provided.
         if clock is not None:
             try:
                 self.clock = int(clock)
@@ -209,7 +202,6 @@ class ItemValue():
                 raise ValueError(
                     'The clock value must be expressed in the Unix Timestamp format') from None
 
-        # Validate and set ns value if provided.
         if ns is not None:
             try:
                 self.ns = int(ns)
@@ -218,15 +210,12 @@ class ItemValue():
                     'The ns value must be expressed in the integer value of nanoseconds') from None
 
     def __to_string(self) -> str:
-        # Convert ItemValue to a JSON-formatted string.
         return json.dumps(self.to_json(), ensure_ascii=False)
 
     def __str__(self) -> str:
-        # Convert ItemValue to a string using the to_string method.
         return self.__to_string()
 
     def __repr__(self) -> str:
-        # Represent ItemValue as a string.
         return self.__str__()
 
     def to_json(self) -> dict:
@@ -236,7 +225,6 @@ class ItemValue():
             dict: Object attributes in dictionary.
         """
 
-        # Convert ItemValue attributes to a dictionary, excluding None values.
         return {k: v for k, v in self.__dict__.items() if v is not None}
 
 
@@ -252,20 +240,16 @@ class Node():
     """
 
     def __init__(self, addr: str, port: Union[int, str]):
-        # If the address is '0.0.0.0/0', set it to '127.0.0.1'.
         self.address = addr if addr != '0.0.0.0/0' else '127.0.0.1'
-        # Validate and set the port as an integer value.
         try:
             self.port = int(port)
         except ValueError:
             raise TypeError('Port must be an integer value') from None
 
     def __str__(self) -> str:
-        # Convert Node object to a string.
         return f"{self.address}:{self.port}"
 
     def __repr__(self) -> str:
-        # Represent Node object as a string.
         return self.__str__()
 
 
@@ -280,12 +264,9 @@ class Cluster():
         self.__nodes = self.__parse_ha_node(addr)
 
     def __parse_ha_node(self, string: str) -> list:
-        # Parse the raw string of node addresses into a list of Node objects.
         nodes = []
         for node_item in string.split(';'):
             node_item = node_item.strip()
-            # If ':' is present, split and create a Node with address and port.
-            # Else, create a Node with the address and default port '10051'.
             if ':' in node_item:
                 nodes.append(Node(*node_item.split(':')))
             else:
@@ -294,11 +275,9 @@ class Cluster():
         return nodes
 
     def __str__(self) -> str:
-        # Convert Cluster object to a JSON-formatted string.
         return json.dumps([(node.address, node.port) for node in self.__nodes])
 
     def __repr__(self) -> str:
-        # Represent Cluster object as a string.
         return self.__str__()
 
     @property
@@ -342,55 +321,43 @@ class Sender():
         self.chunk_size = chunk_size
         self.compression = compression
 
-        # Validate and store the socket_wrapper function if provided.
         if socket_wrapper is not None:
             if not isinstance(socket_wrapper, Callable):
                 raise TypeError('Value "socket_wrapper" should be a function.')
         self.socket_wrapper = socket_wrapper
 
-        # Load clusters from configuration or use default cluster parameters.
         if use_config:
             self.clusters = []
             self.__load_config(config_path)
         else:
             self.clusters = [Cluster(f"{server}:{port}")]
 
-        # Specify the source_ip value if provided.
         if source_ip is not None:
             self.source_ip = source_ip
 
     def __read_config(self, config: configparser.SectionProxy) -> None:
-        # Read server configuration from the provided SectionProxy object.
         server_row = config.get('ServerActive') or config.get('Server') or '127.0.0.1:10051'
 
-        # Iterate through comma-separated server addresses and create Cluster objects.
         for cluster in server_row.split(','):
             self.clusters.append(Cluster(cluster.strip()))
 
-        # Read and set the 'SourceIP' attribute if present in the configuration.
         if 'SourceIP' in config:
             self.source_ip = config.get('SourceIP')
 
-        # Read and set TLS attributes if present in the configuration.
         for key in config:
             if key.startswith('tls'):
                 self.tls[key] = config.get(key)
 
     def __load_config(self, filepath: str) -> None:
-        # Create a ConfigParser object for parsing the configuration.
         config = configparser.ConfigParser(strict=False)
 
-        # Read the content of the configuration file.
         with open(filepath, 'r', encoding='utf-8') as cfg:
             config.read_string('[root]\n' + cfg.read())
-
-        # Read configurations from the root section of ConfigParser object.
         self.__read_config(config['root'])
 
     def __receive(self, conn: socket, size: int) -> bytes:
         buf = b''
 
-        # Receive data from the socket until the specified size is reached.
         while len(buf) < size:
             chunk = conn.recv(size - len(buf))
             if not chunk:
@@ -400,7 +367,6 @@ class Sender():
         return buf
 
     def __get_response(self, conn: socket) -> Union[str, None]:
-        # Receive and parse the response from the Zabbix server/proxy.
         try:
             result = json.loads(
                 ZabbixProtocol.parse_packet(conn, log, self.__receive, ProcessingError)
@@ -461,7 +427,6 @@ class Sender():
                         getattr(err, 'msg', str(err))
                     )
                 else:
-                    # Connection succeeded
                     if i > 0:
                         cluster.nodes[0], cluster.nodes[i] = cluster.nodes[i], cluster.nodes[0]
                     active_node = node
@@ -477,7 +442,6 @@ class Sender():
                     f"Couldn't connect to all of cluster nodes: {list(cluster.nodes)}"
                 )
 
-            # Wrap the socket if a socket wrapper function is specified.
             if self.socket_wrapper is not None:
                 connection = self.socket_wrapper(connection, self.tls)
 
@@ -539,7 +503,6 @@ to a single one. Defaults to `True`.
             raise ProcessingError(f"Received unexpected item list. \
 It must be a list of ItemValue objects: {json.dumps(items)}")
 
-        # Split the list of items into chunks of size self.chunk_size.
         chunks = [items[i:i + self.chunk_size] for i in range(0, len(items), self.chunk_size)]
         for i, chunk in enumerate(chunks):
 
@@ -547,12 +510,10 @@ It must be a list of ItemValue objects: {json.dumps(items)}")
 
             for node, resp in resp_by_node.items():
                 if merge_responses:
-                    # Merge responses into a single TrapperResponse object for each node.
                     if node not in result:
                         result[node] = TrapperResponse()
                     result[node].add(resp, i + 1)
                 else:
-                    # Store responses as a list of TrapperResponse objects for each node.
                     if node not in result:
                         result[node] = []
                     result[node].append(TrapperResponse(i+1).add(resp))

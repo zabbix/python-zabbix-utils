@@ -81,6 +81,7 @@ class APIObject():
             if args and kwargs:
                 raise TypeError("Only args or kwargs should be used.")
 
+            # Support '_' suffix to avoid conflicts with python keywords
             method = f"{self.object.removesuffix('_')}.{name.removesuffix('_')}"
 
             log.debug("Executing %s method", method)
@@ -234,7 +235,6 @@ class ZabbixAPI():
         if http_user and http_password:
             self.__basic_auth(http_user, http_password)
 
-        # Check version compatibility
         self.__check_version(skip_version_check)
 
         if token or user or password:
@@ -272,7 +272,6 @@ class ZabbixAPI():
             ModuleUtils.HIDING_MASK
         )
 
-        # Enable Basic Authentication
         self.__basic_cred = base64.b64encode(
             f"{user}:{password}".encode()
         ).decode()
@@ -308,7 +307,6 @@ class ZabbixAPI():
             password (str, optional): Zabbix API user's password. Defaults to `None`.
         """
 
-        # Login using either token or username/password based on Zabbix API version.
         if token:
             if self.version < 5.4:
                 raise APINotSupported(
@@ -474,7 +472,6 @@ class ZabbixAPI():
         return resp_json
 
     def __check_version(self, skip_check: bool) -> None:
-        # Check if the Zabbix API version is not supported by the library.
 
         skip_check_help = "If you're sure zabbix_utils will work properly with your current \
 Zabbix version you can skip this check by \
