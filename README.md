@@ -78,6 +78,8 @@ for user in users:
     print(user['name'])
 ```
 
+When token is used, calling `api.logout()` is not necessary.
+
 It is possible to specify authentication fields by the following environment variables:
 `ZABBIX_URL`, `ZABBIX_TOKEN`, `ZABBIX_USER`, `ZABBIX_PASSWORD`
 
