@@ -209,11 +209,8 @@ class ItemValue():
                 raise ValueError(
                     'The ns value must be expressed in the integer value of nanoseconds') from None
 
-    def __to_string(self) -> str:
-        return json.dumps(self.to_json(), ensure_ascii=False)
-
     def __str__(self) -> str:
-        return self.__to_string()
+        return json.dumps(self.to_json(), ensure_ascii=False)
 
     def __repr__(self) -> str:
         return self.__str__()

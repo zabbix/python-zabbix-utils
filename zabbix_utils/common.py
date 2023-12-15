@@ -173,21 +173,23 @@ class ZabbixProtocol():
         return packet
 
     @classmethod
-    def receive_packet(cls, conn: socket, size: int) -> bytes:
+    def receive_packet(cls, conn: socket, size: int, log: Logger) -> bytes:
         """Receive a Zabbix protocol packet.
 
         Args:
             conn (socket): Opened socket connection
             size (int): Expected packet size
+            log (Logger): Logger object
 
         Returns:
             bytes: Received packet content
         """
         buf = b''
 
-        while True:
+        while len(buf) < size:
             chunk = conn.recv(size - len(buf))
             if not chunk:
+                log.debug("Socket connection was closed before receiving expected amount of data.")
                 break
             buf += chunk
 
@@ -209,7 +211,7 @@ class ZabbixProtocol():
             str: Body of the received packet
         """
 
-        response_header = cls.receive_packet(conn, cls.HEADER_SIZE)
+        response_header = cls.receive_packet(conn, cls.HEADER_SIZE, log)
         log.debug('Zabbix response header: %s', response_header)
 
         if (not response_header.startswith(cls.ZABBIX_PROTOCOL) or
@@ -233,8 +235,8 @@ class ZabbixProtocol():
             )
         # 0x02 - Using packet compression mode
         if flags & 0x02:
-            response_body = zlib.decompress(cls.receive_packet(conn, datalen))
+            response_body = zlib.decompress(cls.receive_packet(conn, datalen, log))
         else:
-            response_body = cls.receive_packet(conn, datalen)
+            response_body = cls.receive_packet(conn, datalen, log)
 
         return response_body.decode("utf-8")
