@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+# Copyright (C) 2001-2023 Zabbix SIA
+#
+# Zabbix SIA licenses this file under the MIT License.
+# See the LICENSE file in the project root for more information.
+
 import sys
 import unittest
 
@@ -61,7 +66,17 @@ class IntegrationAPITest(unittest.TestCase):
             users = self.zapi.user.get(
                 output=['userid', 'name']
             )
-        self.assertEqual(type(users), list, "Request user.getter was going wrong")
+        self.assertEqual(type(users), list, "Request user.get was going wrong")
+
+    def test_host_get(self):
+        """Tests getting hosts info works properly using suffix"""
+
+        hosts = None
+        if self.zapi:
+            hosts = self.zapi.host_.get_(
+                output=['hostid', 'host']
+            )
+        self.assertEqual(type(hosts), list, "Request host.get was going wrong")
 
 
 if __name__ == '__main__':

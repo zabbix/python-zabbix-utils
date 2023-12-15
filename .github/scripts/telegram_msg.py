@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# Copyright (C) 2001-2023 Zabbix SIA
+#
+# Zabbix SIA licenses this file under the MIT License.
+# See the LICENSE file in the project root for more information.
+
 import requests
 import sys
 import os

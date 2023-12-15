@@ -1,3 +1,27 @@
+# zabbix_utils
+#
+# Copyright (C) 2001-2023 Zabbix SIA
+#
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies
+# of the Software, and to permit persons to whom the Software
+# is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+
 import json
 import socket
 import unittest
@@ -6,6 +30,7 @@ from unittest.mock import patch
 
 from zabbix_utils.sender import Sender, Cluster, ItemValue
 from zabbix_utils.exceptions import ProcessingError
+from zabbix_utils.common import ZabbixProtocol
 
 
 DEFAULT_VALUES = {
@@ -99,34 +124,6 @@ class TestSender(unittest.TestCase):
                                msg="expected TypeError exception hasn't been raised"):
             sender = Sender(server='localhost', port='test')
 
-    def test_create_packet(self):
-        """Tests __create_packet method in different cases"""
-
-        test_cases = [
-            {
-                'input': {'items':[ItemValue('test', 'glāžšķūņu rūķīši', 0)]},
-                'output': b'ZBXD\x01i\x00\x00\x00\x00\x00\x00\x00{"request": "sender data", "data": \
-[{"host": "test", "key": "gl\xc4\x81\xc5\xbe\xc5\xa1\xc4\xb7\xc5\xab\xc5\x86u r\xc5\xab\xc4\xb7\xc4\xab\xc5\xa1i", "value": "0"}]}'
-            },
-            {
-                'input': {'items':[ItemValue('test', 'test_creating_packet', 0)]},
-                'output': b'ZBXD\x01\x63\x00\x00\x00\x00\x00\x00\x00{"request": "sender data", "data": \
-[{"host": "test", "key": "test_creating_packet", "value": "0"}]}'
-            },
-            {
-                'input': {'items':[ItemValue('test', 'test_compression_flag', 0)], 'compressed_size': 5},
-                'output': b'ZBXD\x02\x05\x00\x00\x00\x64\x00\x00\x00{"request": "sender data", "data": \
-[{"host": "test", "key": "test_compression_flag", "value": "0"}]}'
-            }
-        ]
-
-        for case in test_cases:
-
-            sender = Sender()
-
-            self.assertEqual(sender._Sender__create_packet(**case['input']), case['output'],
-                             f"unexpected output with input data: {case['input']}")
-
     def test_get_response(self):
         """Tests __get_response method in different cases"""
 
@@ -142,13 +139,9 @@ class TestSender(unittest.TestCase):
                 'output': '{"request": "sender data", "data": [{"host": "test", "key": "test_creating_packet", "value": "0"}]}'
             },
             {
-                'input': b'ZBXD\x02\x05\x00\x00\x00\x64\x00\x00\x00{"request": "sender data", "data": \
-[{"host": "test", "key": "test_compression_flag", "value": "0"}]}',
-                'output': '{"request": "sender data", "data": [{"host": "test", "key": "test_compression_flag", "value": "0"}]}'
-            },
-            {
-                'input': b'ZBXD\x03\x5e\x00\x00\x00\x00\x00\x00\x00{"request": "sender data", "data": \
-[{"host": "test", "key": "test_both_flags", "value": "0"}]}',
+                'input': b"ZBXD\x03Q\x00\x00\x00^\x00\x00\x00x\x9c\xabV*J-,M-.Q\
+\xb2RP*N\xcdKI-RHI,IT\xd2QP\x02\xd3V\n\xd1\xd5J\x19\xf9\x10\x05% \x85@\x99\xec\xd4J\x187>)\
+\xbf$#>-'1\xbd\x18$S\x96\x98S\x9a\n\x923P\xaa\x8d\xad\x05\x00\x9e\xb7\x1d\xdd",
                 'output': '{"request": "sender data", "data": [{"host": "test", "key": "test_both_flags", "value": "0"}]}'
             }
         ]
@@ -196,11 +189,13 @@ class TestSender(unittest.TestCase):
             conn = ConnectTest(b'ZBXD\x00\x04\x00\x00\x00\x04\x00\x00\x00test')
             sender._Sender__get_response(conn)
 
-        with self.assertRaises(json.decoder.JSONDecodeError,
-                               msg="expected ProcessingError exception hasn't been raised"):
+        # Compression check
+        try:
             sender = Sender()
-            conn = ConnectTest(b'ZBXD\x03\x00\x00\x00\x00\x02\x00\x00\x00{}')
+            conn = ConnectTest(b'ZBXD\x03\x10\x00\x00\x00\x02\x00\x00\x00x\x9c\xab\xae\x05\x00\x01u\x00\xf9')
             sender._Sender__get_response(conn)
+        except json.decoder.JSONDecodeError:
+            self.fail(f"raised unexpected JSONDecodeError during the compression check")
 
     def test_send(self):
         """Tests send method in different cases"""
@@ -394,6 +389,45 @@ class TestItemValue(unittest.TestCase):
                 
                 self.assertEqual(str(item), repr(item),
                                  f"unexpected output with input data: {case['input']}")
+
+
+class TestZabbixProtocol(unittest.TestCase):
+    """Test cases for ZabbixProtocol object"""
+
+    def test_create_packet(self):
+        """Tests create_packet method in different cases"""
+
+        test_cases = [
+            {
+                'input': {'items':[ItemValue('test', 'glāžšķūņu rūķīši', 0)]},
+                'compression': False,
+                'output': b'ZBXD\x01i\x00\x00\x00\x00\x00\x00\x00{"request": "sender data", "data": \
+[{"host": "test", "key": "gl\xc4\x81\xc5\xbe\xc5\xa1\xc4\xb7\xc5\xab\xc5\x86u r\xc5\xab\xc4\xb7\xc4\xab\xc5\xa1i", "value": "0"}]}'
+            },
+            {
+                'input': {'items':[ItemValue('test', 'test_creating_packet', 0)]},
+                'compression': False,
+                'output': b'ZBXD\x01\x63\x00\x00\x00\x00\x00\x00\x00{"request": "sender data", "data": \
+[{"host": "test", "key": "test_creating_packet", "value": "0"}]}'
+            },
+            {
+                'input': {'items':[ItemValue('test', 'test_compression_flag', 0)]},
+                'compression': True,
+                'output': b"ZBXD\x03W\x00\x00\x00d\x00\x00\x00x\x9c\xabV*J-,M-.Q\xb2RP*N\
+\xcdKI-RHI,IT\xd2QP\x02\xd3V\n\xd1\xd5J\x19\xf9\x10\x05% \x85@\x99\xec\xd4J\x187>9?\xb7\xa0\
+(\xb5\xb883?/>-'1\x1d$_\x96\x98S\x9a\nRa\xa0T\x1b[\x0b\x00l\xbf o"
+            }
+        ]
+        
+        class Logger():
+            def debug(self, *args, **kwargs):
+                pass
+
+        for case in test_cases:
+
+            resp = ZabbixProtocol.create_packet(Sender()._Sender__create_request(**case['input']), Logger(), case['compression'])
+            self.assertEqual(resp, case['output'],
+                             f"unexpected output with input data: {case['input']}")
 
 
 if __name__ == '__main__':

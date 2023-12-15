@@ -1,3 +1,8 @@
+# Copyright (C) 2001-2023 Zabbix SIA
+#
+# Zabbix SIA licenses this file to you under the MIT License.
+# See the LICENSE file in the project root for more information.
+
 from zabbix_utils import Sender
 
 # Create an instance of the Sender class with specified parameters

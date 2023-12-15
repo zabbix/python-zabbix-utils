@@ -27,8 +27,8 @@ Supported versions:
 
 Tested on:
 
-* Zabbix 4.0, 5.0, 6.0, 6.4 and 7.0alpha7
-* Python 3.7, 3.8, 3.9, 3.10 and 3.11
+* Zabbix 5.0, 6.0, 6.4 and 7.0.0 alpha 7
+* Python 3.8, 3.9, 3.10 and 3.11
 
 ## Documentation
 
@@ -76,9 +76,9 @@ users = api.user.get(
 
 for user in users:
     print(user['name'])
-
-api.logout()
 ```
+
+When token is used, calling `api.logout()` is not necessary.
 
 It is possible to specify authentication fields by the following environment variables:
 `ZABBIX_URL`, `ZABBIX_TOKEN`, `ZABBIX_USER`, `ZABBIX_PASSWORD`
@@ -113,6 +113,27 @@ print(ver.minor)    # 0
 print(ver.is_lts()) # True
 
 api.logout()
+```
+
+In case the API object or method name matches one of Python keywords, you can use the suffix `_` in their name to execute correctly:
+```python
+from zabbix_utils import ZabbixAPI
+
+api = ZabbixAPI(url="127.0.0.1")
+api.login(token="xxxxxxxx")
+
+template_source = ''
+with open('template_example.xml', mode='r', encoding='utf-8') as f:
+    template_source = f.read()
+
+response = api.configuration.import_(
+    source=template_source,
+    format="xml",
+    rules={...}
+)
+
+if response:
+    print("Template imported successfully")
 ```
 
 > Please, refer to the [Zabbix API Documentation](https://www.zabbix.com/documentation/current/manual/api/reference) and the [using examples](https://github.com/zabbix/python-zabbix-utils/tree/main/examples/api) for more information.
