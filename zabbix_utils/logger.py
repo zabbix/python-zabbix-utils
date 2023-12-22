@@ -22,6 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
+import json
 import logging
 from .common import ModuleUtils
 
@@ -38,12 +39,15 @@ class SensitiveFilter(logging.Filter):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.hide_data = ModuleUtils.hide_private
+
+    def __hide_data(self, raw_data):
+        return json.dumps(ModuleUtils.hide_private(raw_data), indent=4, separators=(',', ': '))
 
     def filter(self, record):
-        record.msg = self.hide_data(record.msg)
-        if record.args:
-            record.args = tuple(self.hide_data(arg) if isinstance(arg, str)
-                                else arg for arg in record.args)
+        if isinstance(record.args, tuple):
+            record.args = tuple(self.__hide_data(arg)
+                                if isinstance(arg, dict) else arg for arg in record.args)
+        if isinstance(record.args, dict):
+            record.args = self.__hide_data(record.args)
 
         return 1

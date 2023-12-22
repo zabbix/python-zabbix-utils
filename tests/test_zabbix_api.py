@@ -478,24 +478,32 @@ class TestModuleUtils(unittest.TestCase):
 
         test_cases = [
             {
-                'input': json.dumps({"auth": "q2BTIw85kqmjtXl3","token": "jZAC51wHuWdwvQnx"}),
-                'output': json.dumps({"auth": mask, "token": mask})
+                'input': {"auth": "q2BTIw85kqmjtXl3","token": "jZAC51wHuWdwvQnx"},
+                'output': {"auth": mask, "token": mask}
             },
             {
-                'input': json.dumps({"token": "jZAC51wHuWdwvQnxwbP2T55vh6R5R2uW"}),
-                'output': json.dumps({"token": f"jZAC{mask}R2uW"})
+                'input': {"token": "jZAC51wHuWdwvQnxwbP2T55vh6R5R2uW"},
+                'output': {"token": f"jZAC{mask}R2uW"}
             },
             {
-                'input': json.dumps({"auth": "q2BTIw85kqmjtXl3zCgSSR26gwCGVFMK"}),
-                'output': json.dumps({"auth": f"q2BT{mask}VFMK"})
+                'input': {"auth": "q2BTIw85kqmjtXl3zCgSSR26gwCGVFMK"},
+                'output': {"auth": f"q2BT{mask}VFMK"}
             },
             {
-                'input': json.dumps({"sessionid": "p1xqXSf2HhYWa2ml6R5R2uWwbP2T55vh"}),
-                'output': json.dumps({"sessionid": f"p1xq{mask}55vh"})
+                'input': {"sessionid": "p1xqXSf2HhYWa2ml6R5R2uWwbP2T55vh"},
+                'output': {"sessionid": f"p1xq{mask}55vh"}
             },
             {
-                'input': json.dumps({"password": "HlphkcKgQKvofQHP"}),
-                'output': json.dumps({"password": mask})
+                'input': {"password": "HlphkcKgQKvofQHP"},
+                'output': {"password": mask}
+            },
+            {
+                'input': {"result": "p1xqXSf2HhYWa2ml6R5R2uWwbP2T55vh"},
+                'output': {"result": f"p1xq{mask}55vh"}
+            },
+            {
+                'input': {"result": "6.0.0"},
+                'output': {"result": "6.0.0"}
             }
         ]
 

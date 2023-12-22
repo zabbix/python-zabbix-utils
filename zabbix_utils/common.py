@@ -48,11 +48,11 @@ class ModuleUtils():
 
     # List of private fields and regular expressions to hide them
     PRIVATE_FIELDS = {
-        "token": "[A-Za-z0-9]+",
-        "auth": "[A-Za-z0-9]+",
-        "sessionid": "[A-Za-z0-9]+",
-        "password": "[^'\"]+",
-        "result": "(?!(zabbix_export|[0-9.]{5}))[A-Za-z0-9]+",
+        "token": r"^.+$",
+        "auth": r"^.+$",
+        "sessionid": r"^.+$",
+        "password": r"^.+$",
+        "result": r"^(?!(zabbix_export|[0-9.]{5}))[A-Za-z0-9]+$",
     }
 
     @classmethod
@@ -96,27 +96,36 @@ Defaults to 4.
         return f"{string[:show_len]}{cls.HIDING_MASK}{string[-show_len:]}"
 
     @classmethod
-    def hide_private(cls, message: str, fields: dict = None) -> str:
+    def hide_private(cls, input_data: dict, fields: dict = None) -> dict:
         """Hide private data Zabbix info (e.g. token, password)
 
         Args:
-            message (str): Message text with private data.
-            fields (dict): Dictionary of private fields and their seeking regexps.
+            input_data (dict): Input dictionary with private fields.
+            fields (dict): Dictionary of private fields and their filtering regexps.
 
         Returns:
-            str: Message text without private data.
+            dict: Result dictionary without private data.
         """
 
         private_fields = fields if fields else cls.PRIVATE_FIELDS
 
+        if not isinstance(input_data, dict):
+            raise TypeError(f"Unsupported data type '{type(input_data).__name__}', \
+only 'dict' is expected")
+
         def gen_repl(match: Match):
             return cls.mask_secret(match.group(0))
 
-        pattern = re.compile(
-            r"|".join([rf"(?<=\"{f}\":\s\"){r}" for f, r in private_fields.items()])
-        )
+        result_data = input_data.copy()
 
-        return re.sub(pattern, gen_repl, message)
+        for key, value in result_data.items():
+            if isinstance(value, str):
+                if key in private_fields:
+                    result_data[key] = re.sub(private_fields[key], gen_repl, value)
+            if isinstance(value, dict):
+                result_data[key] = cls.hide_private(value)
+
+        return result_data
 
 
 class ZabbixProtocol():

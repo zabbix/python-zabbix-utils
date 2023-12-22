@@ -425,9 +425,9 @@ class ZabbixAPI():
             headers["Authorization"] = f"Basic {self.__basic_cred}"
 
         log.debug(
-            "Sending request to %s with body:%s",
+            "Sending request to %s with body: %s",
             self.url,
-            json.dumps(request_json)
+            request_json
         )
 
         req = ul.Request(
@@ -457,20 +457,20 @@ class ZabbixAPI():
         if method not in ModuleUtils.FILES_METHODS:
             log.debug(
                 "Received response body: %s",
-                json.dumps(resp_json, indent=4, separators=(',', ': '))
+                resp_json
             )
         else:
             debug_json = resp_json.copy()
             if debug_json.get('result'):
                 debug_json['result'] = shorten(debug_json['result'], 200, placeholder='...')
             log.debug(
-                "Received response body (short): %s",
+                "Received response body (clipped): %s",
                 json.dumps(debug_json, indent=4, separators=(',', ': '))
             )
 
         if 'error' in resp_json:
             err = resp_json['error'].copy()
-            err['body'] = json.dumps(request_json)
+            err['body'] = request_json.copy()
             raise APIRequestError(err)
 
         return resp_json
