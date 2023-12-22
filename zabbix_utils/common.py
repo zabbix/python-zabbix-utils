@@ -126,22 +126,22 @@ class ZabbixProtocol():
     HEADER_SIZE = 13
 
     @classmethod
-    def __prepare_request(cls, data: Union[bytes, str, dict]) -> bytes:
+    def __prepare_request(cls, data: Union[bytes, str, list, dict]) -> bytes:
         if isinstance(data, bytes):
             return data
         if isinstance(data, str):
             return data.encode("utf-8")
         if isinstance(data, list) or isinstance(data, dict):
             return json.dumps(data, ensure_ascii=False).encode("utf-8")
-        raise TypeError("Unsupported data type, only 'bytes', 'str' or 'dict' is expected")
+        raise TypeError("Unsupported data type, only 'bytes', 'str', 'list' or 'dict' is expected")
 
     @classmethod
-    def create_packet(cls, payload: Union[bytes, str, dict],
+    def create_packet(cls, payload: Union[bytes, str, list, dict],
                       log: Logger, compression: bool = False) -> bytes:
         """Create a packet for sending via the Zabbix protocol.
 
         Args:
-            payload (Union[bytes, str, dict]): Payload of the future packet
+            payload (Union[bytes, str, list, dict]): Payload of the future packet
             log (Logger): Logger object
             compression (bool, optional): Compression use flag. Defaults to `False`.
 
