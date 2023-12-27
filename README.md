@@ -28,7 +28,7 @@ Supported versions:
 Tested on:
 
 * Zabbix 5.0, 6.0, 6.4 and pre-7.0
-* Python 3.8, 3.9, 3.10 and 3.11
+* Python 3.8, 3.9, 3.10, 3.11 and 3.12
 
 ## Documentation
 
