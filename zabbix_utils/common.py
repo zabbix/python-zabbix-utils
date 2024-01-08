@@ -52,7 +52,7 @@ class ModuleUtils():
         "auth": r"^.+$",
         "sessionid": r"^.+$",
         "password": r"^.+$",
-        "result": r"^(?!(zabbix_export|[0-9.]{5}))[A-Za-z0-9]+$",
+        "result": r"^[A-Za-z0-9]{32}$",
     }
 
     @classmethod
@@ -116,14 +116,38 @@ only 'dict' is expected")
         def gen_repl(match: Match):
             return cls.mask_secret(match.group(0))
 
+        def hide_str(k, v):
+            return re.sub(private_fields[k], gen_repl, v)
+
+        def hide_dict(v):
+            return cls.hide_private(v)
+
+        def hide_list(v):
+            result = []
+            for item in v:
+                if isinstance(item, dict):
+                    result.append(hide_dict(item))
+                    continue
+                if isinstance(item, list):
+                    result.append(hide_list(item))
+                    continue
+                if isinstance(item, str):
+                    if 'result' in private_fields:
+                        result.append(hide_str('result', item))
+                        continue
+                result.append(item)
+            return result
+
         result_data = input_data.copy()
 
         for key, value in result_data.items():
             if isinstance(value, str):
                 if key in private_fields:
-                    result_data[key] = re.sub(private_fields[key], gen_repl, value)
+                    result_data[key] = hide_str(key, value)
             if isinstance(value, dict):
-                result_data[key] = cls.hide_private(value)
+                result_data[key] = hide_dict(value)
+            if isinstance(value, list):
+                result_data[key] = hide_list(value)
 
         return result_data
 

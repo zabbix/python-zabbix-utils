@@ -504,6 +504,26 @@ class TestModuleUtils(unittest.TestCase):
             {
                 'input': {"result": "6.0.0"},
                 'output': {"result": "6.0.0"}
+            },
+            {
+                'input': {"result": ["10"]},
+                'output': {"result": ["10"]}
+            },
+            {
+                'input': {"result": [{"token": "jZAC51wHuWdwvQnxwbP2T55vh6R5R2uW"}]},
+                'output': {"result": [{"token": f"jZAC{mask}R2uW"}]}
+            },
+            {
+                'input': {"result": [["10"],["15"]]},
+                'output': {"result": [["10"],["15"]]}
+            },
+            {
+                'input': {"result": [[{"token": "jZAC51wHuWdwvQnxwbP2T55vh6R5R2uW"}]]},
+                'output': {"result": [[{"token": f"jZAC{mask}R2uW"}]]}
+            },
+            {
+                'input': {"result": ["jZAC51wHuWdwvQnxwbP2T55vh6R5R2uW"]},
+                'output': {"result": [f"jZAC{mask}R2uW"]}
             }
         ]
 
