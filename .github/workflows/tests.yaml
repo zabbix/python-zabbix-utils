@@ -13,11 +13,11 @@ jobs:
     strategy:
       matrix:
         python-version:
-          - "3.7"
           - "3.8"
           - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
         platform:
           - ubuntu-latest
           - macos-latest
@@ -31,15 +31,15 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-          python -m pip install --upgrade pip
-          pip install -r ./requirements.txt
-          pip install -r ./requirements-dev.txt
-          pip install coverage
+        python -m pip install --upgrade pip
+        pip install -r ./requirements.txt
+        pip install -r ./requirements-dev.txt
+        pip install coverage
     - name: Lint with flake8
       run: |
         flake8 ./zabbix_utils/ --count --select=E9,F63,F7,F82 --show-source --statistics
         flake8 ./zabbix_utils/ --count --exit-zero --max-complexity=20 --max-line-length=127 --statistics
     - name: Test with unittest
       run: |
-          python -m unittest discover -s ./tests -p 'test_*.py'
+        python -m unittest discover -s ./tests -p 'test_*.py'
 

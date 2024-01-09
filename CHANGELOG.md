@@ -1,3 +1,15 @@
+## [1.0.3](https://github.com/zabbix/python-zabbix-utils/compare/v1.0.2...v1.0.3) (2024-01-09)
+
+### Documentation
+
+- added support for Python 3.12
+- discontinued support for Python 3.7
+
+### Bug fixes:
+
+- fixed issue with hiding private (sensitive) information in the log.
+- fixed small bugs and flaws.
+
 ## [1.0.2](https://github.com/zabbix/python-zabbix-utils/compare/v1.0.1...v1.0.2) (2023-12-15)
 
 ### Bug fixes:

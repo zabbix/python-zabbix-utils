@@ -22,6 +22,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
+from typing import Union
+
 from .common import ModuleUtils
 
 
@@ -33,13 +35,12 @@ class APIRequestError(ModuleBaseException):
     """Exception class when Zabbix API returns error by request.
 
     Args:
-        api_error (str): Raw error message from Zabbix API.
+        api_error (Union[str, dict]): Raw error message from Zabbix API.
     """
-    def __init__(self, api_error: str):
+    def __init__(self, api_error: Union[str, dict]):
         if isinstance(api_error, dict):
             api_error['body'] = ModuleUtils.hide_private(api_error['body'])
             super().__init__("{message} {data}".format(**api_error))
-            self.error = api_error
             for key, value in api_error.items():
                 setattr(self, key, value)
         else:

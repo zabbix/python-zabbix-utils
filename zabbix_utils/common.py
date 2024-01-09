@@ -48,11 +48,11 @@ class ModuleUtils():
 
     # List of private fields and regular expressions to hide them
     PRIVATE_FIELDS = {
-        "token": "[A-Za-z0-9]+",
-        "auth": "[A-Za-z0-9]+",
-        "sessionid": "[A-Za-z0-9]+",
-        "password": "[^'\"]+",
-        "result": "(?!(zabbix_export|[0-9.]{5}))[A-Za-z0-9]+",
+        "token": r"^.+$",
+        "auth": r"^.+$",
+        "sessionid": r"^.+$",
+        "password": r"^.+$",
+        "result": r"^[A-Za-z0-9]{32}$",
     }
 
     @classmethod
@@ -96,27 +96,60 @@ Defaults to 4.
         return f"{string[:show_len]}{cls.HIDING_MASK}{string[-show_len:]}"
 
     @classmethod
-    def hide_private(cls, message: str, fields: dict = None) -> str:
+    def hide_private(cls, input_data: dict, fields: dict = None) -> dict:
         """Hide private data Zabbix info (e.g. token, password)
 
         Args:
-            message (str): Message text with private data.
-            fields (dict): Dictionary of private fields and their seeking regexps.
+            input_data (dict): Input dictionary with private fields.
+            fields (dict): Dictionary of private fields and their filtering regexps.
 
         Returns:
-            str: Message text without private data.
+            dict: Result dictionary without private data.
         """
 
         private_fields = fields if fields else cls.PRIVATE_FIELDS
 
+        if not isinstance(input_data, dict):
+            raise TypeError(f"Unsupported data type '{type(input_data).__name__}', \
+only 'dict' is expected")
+
         def gen_repl(match: Match):
             return cls.mask_secret(match.group(0))
 
-        pattern = re.compile(
-            r"|".join([rf"(?<=\"{f}\":\s\"){r}" for f, r in private_fields.items()])
-        )
+        def hide_str(k, v):
+            return re.sub(private_fields[k], gen_repl, v)
 
-        return re.sub(pattern, gen_repl, message)
+        def hide_dict(v):
+            return cls.hide_private(v)
+
+        def hide_list(v):
+            result = []
+            for item in v:
+                if isinstance(item, dict):
+                    result.append(hide_dict(item))
+                    continue
+                if isinstance(item, list):
+                    result.append(hide_list(item))
+                    continue
+                if isinstance(item, str):
+                    if 'result' in private_fields:
+                        result.append(hide_str('result', item))
+                        continue
+                result.append(item)
+            return result
+
+        result_data = input_data.copy()
+
+        for key, value in result_data.items():
+            if isinstance(value, str):
+                if key in private_fields:
+                    result_data[key] = hide_str(key, value)
+            if isinstance(value, dict):
+                result_data[key] = hide_dict(value)
+            if isinstance(value, list):
+                result_data[key] = hide_list(value)
+
+        return result_data
 
 
 class ZabbixProtocol():
@@ -126,22 +159,22 @@ class ZabbixProtocol():
     HEADER_SIZE = 13
 
     @classmethod
-    def __prepare_request(cls, data: Union[bytes, str, dict]) -> bytes:
+    def __prepare_request(cls, data: Union[bytes, str, list, dict]) -> bytes:
         if isinstance(data, bytes):
             return data
         if isinstance(data, str):
             return data.encode("utf-8")
         if isinstance(data, list) or isinstance(data, dict):
             return json.dumps(data, ensure_ascii=False).encode("utf-8")
-        raise TypeError("Unsupported data type, only 'bytes', 'str' or 'dict' is expected")
+        raise TypeError("Unsupported data type, only 'bytes', 'str', 'list' or 'dict' is expected")
 
     @classmethod
-    def create_packet(cls, payload: Union[bytes, str, dict],
+    def create_packet(cls, payload: Union[bytes, str, list, dict],
                       log: Logger, compression: bool = False) -> bytes:
         """Create a packet for sending via the Zabbix protocol.
 
         Args:
-            payload (Union[bytes, str, dict]): Payload of the future packet
+            payload (Union[bytes, str, list, dict]): Payload of the future packet
             log (Logger): Logger object
             compression (bool, optional): Compression use flag. Defaults to `False`.
 
