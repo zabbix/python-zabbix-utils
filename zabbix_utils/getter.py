@@ -22,6 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
+import json
 import socket
 import logging
 from typing import Callable, Union
@@ -32,6 +33,38 @@ from .exceptions import ProcessingError
 
 log = logging.getLogger(__name__)
 log.addHandler(EmptyHandler())
+
+
+class AgentResponse:
+    """Contains response from Zabbix agent/agent2.
+
+    Args:
+        response (string): Raw response from Zabbix.
+    """
+
+    def __init__(self, response: str):
+        error_code = 'ZBX_NOTSUPPORTED'
+        self.raw = response
+        if response == error_code:
+            self.value = None
+            self.error = 'Not supported by Zabbix Agent'
+        elif response.startswith(error_code + '\0'):
+            self.value = None
+            self.error = response[len(error_code)+1:]
+        else:
+            idx = response.find('\0')
+            if idx == -1:
+                self.value = response
+            else:
+                self.value = response[:idx]
+            self.error = None
+
+    def __repr__(self) -> str:
+        return json.dumps({
+            'error': self.error,
+            'raw': self.raw,
+            'value': self.value,
+        })
 
 
 class Getter():
@@ -141,4 +174,4 @@ class Getter():
         except socket.error:
             pass
 
-        return response
+        return AgentResponse(response)
