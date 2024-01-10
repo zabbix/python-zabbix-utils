@@ -102,7 +102,7 @@ class TrapperResponse():
 
         Args:
             response (dict): Raw response from Zabbix.
-            chunk (Union[int, None], optional): Chunk number. Defaults to `None`.
+            chunk (int, optional): Chunk number. Defaults to `None`.
         """
 
         resp = self.parse(response)
@@ -254,15 +254,15 @@ class Cluster():
     """Contains Zabbix node objects in a cluster object.
 
     Args:
-        addr (str): Raw string with node addresses.
+        addr (list): Raw list of node addresses.
     """
 
-    def __init__(self, addr: str):
+    def __init__(self, addr: list):
         self.__nodes = self.__parse_ha_node(addr)
 
-    def __parse_ha_node(self, string: str) -> list:
+    def __parse_ha_node(self, node_list: list) -> list:
         nodes = []
-        for node_item in string.split(';'):
+        for node_item in node_list:
             node_item = node_item.strip()
             if ':' in node_item:
                 nodes.append(Node(*node_item.split(':')))
@@ -299,15 +299,17 @@ class Sender():
         use_ipv6 (bool, optional): Specifying IPv6 use instead of IPv4. Defaults to `False`.
         source_ip (str, optional): IP from which to establish connection. Defaults to `None`.
         chunk_size (int, optional): Number of packets in one chunk. Defaults to `250`.
+        clusters (tuple|list, optional): List of Zabbix clusters. Defaults to `None`.
         socket_wrapper (Callable, optional): Func(`conn`,`tls`) to wrap socket. Defaults to `None`.
         compression (bool, optional): Specifying compression use. Defaults to `False`.
         config_path (str, optional): Path to Zabbix agent configuration file. Defaults to \
 `/etc/zabbix/zabbix_agentd.conf`.
     """
 
-    def __init__(self, server: str = '127.0.0.1', port: int = 10051,
-                 use_config: bool = False, timeout: int = 10, use_ipv6: bool = False,
-                 source_ip: Union[str, None] = None, chunk_size: int = 250,
+    def __init__(self, server: Union[str, None] = None, port: int = 10051,
+                 use_config: bool = False, timeout: int = 10,
+                 use_ipv6: bool = False, source_ip: Union[str, None] = None, 
+                 chunk_size: int = 250, clusters: Union[tuple, list, None] = None,
                  socket_wrapper: Union[Callable, None] = None, compression: bool = False,
                  config_path: Union[str, None] = '/etc/zabbix/zabbix_agentd.conf'):
         self.timeout = timeout
@@ -320,23 +322,35 @@ class Sender():
 
         if socket_wrapper is not None:
             if not isinstance(socket_wrapper, Callable):
-                raise TypeError('Value "socket_wrapper" should be a function.')
+                raise TypeError('Value "socket_wrapper" should be a function.') from None
         self.socket_wrapper = socket_wrapper
+
+        if source_ip is not None:
+            self.source_ip = source_ip
 
         if use_config:
             self.clusters = []
             self.__load_config(config_path)
-        else:
-            self.clusters = [Cluster(f"{server}:{port}")]
+            return
 
-        if source_ip is not None:
-            self.source_ip = source_ip
+        if clusters is not None:
+            if not (isinstance(clusters, tuple) or isinstance(clusters, list)):
+                raise TypeError('Value "clusters" should be a tuple or a list.') from None
+
+            clusters = clusters.copy()
+
+            if server is not None:
+                clusters.append([f"{server}:{port}"])
+
+            self.clusters = [Cluster(c) for c in clusters]
+        else:
+            self.clusters = [Cluster([f"{server or '127.0.0.1'}:{port}"])]
 
     def __read_config(self, config: configparser.SectionProxy) -> None:
         server_row = config.get('ServerActive') or config.get('Server') or '127.0.0.1:10051'
 
         for cluster in server_row.split(','):
-            self.clusters.append(Cluster(cluster.strip()))
+            self.clusters.append(Cluster(cluster.strip().split(';')))
 
         if 'SourceIP' in config:
             self.source_ip = config.get('SourceIP')

@@ -36,7 +36,12 @@ from zabbix_utils.common import ZabbixProtocol
 DEFAULT_VALUES = {
     'server': 'localhost',
     'port': 10051,
-    'source_ip': '192.168.1.1'
+    'source_ip': '192.168.1.1',
+    'clusters': [
+        ['zabbix.cluster.node1','zabbix.cluster.node2:20051'],
+        ['zabbix.cluster2.node1','zabbix.cluster2.node2'],
+        ['zabbix.domain']
+    ]
 }
 
 ZABBIX_CONFIG = [
@@ -64,13 +69,32 @@ class TestSender(unittest.TestCase):
 
         test_cases = [
             {
-                'input': {'source_ip': '10.10.0.0'},
+                'input': {'server':'127.0.0.1', 'source_ip': '10.10.0.0'},
                 'clusters': json.dumps([[["127.0.0.1", 10051]]]),
                 'source_ip': '10.10.0.0'
             },
             {
                 'input': {'server':'localhost', 'port': 10151},
                 'clusters': json.dumps([[["localhost", 10151]]]),
+                'source_ip': None
+            },
+            {
+                'input': {'server':'localhost', 'port': 10151, 'clusters': DEFAULT_VALUES['clusters']},
+                'clusters': json.dumps([
+                    [["zabbix.cluster.node1", 10051], ["zabbix.cluster.node2", 20051]],
+                    [["zabbix.cluster2.node1", 10051], ["zabbix.cluster2.node2", 10051]],
+                    [["zabbix.domain", 10051]],
+                    [["localhost", 10151]]
+                ]),
+                'source_ip': None
+            },
+            {
+                'input': {'clusters': DEFAULT_VALUES['clusters']},
+                'clusters': json.dumps([
+                    [["zabbix.cluster.node1", 10051], ["zabbix.cluster.node2", 20051]],
+                    [["zabbix.cluster2.node1", 10051], ["zabbix.cluster2.node2", 10051]],
+                    [["zabbix.domain", 10051]]
+                ]),
                 'source_ip': None
             },
             {
@@ -313,15 +337,15 @@ class TestCluster(unittest.TestCase):
 
         test_cases = [
             {
-                'input': '127.0.0.1',
+                'input': ['127.0.0.1'],
                 'clusters': json.dumps([["127.0.0.1", 10051]])
             },
             {
-                'input': 'localhost:10151',
+                'input': ['localhost:10151'],
                 'clusters': json.dumps([["localhost", 10151]])
             },
             {
-                'input': 'zabbix.cluster.node1;zabbix.cluster.node2:20051;zabbix.cluster.node3:30051',
+                'input': ['zabbix.cluster.node1','zabbix.cluster.node2:20051','zabbix.cluster.node3:30051'],
                 'clusters': json.dumps([
                     ["zabbix.cluster.node1", 10051], ["zabbix.cluster.node2", 20051], ["zabbix.cluster.node3", 30051]
                 ])
