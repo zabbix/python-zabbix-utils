@@ -13,9 +13,16 @@ agent = Getter(host='127.0.0.1', port=10050)
 # Send a Zabbix agent query for network interface discovery
 resp = agent.get('net.if.discovery')
 
+# Check if there was an error in the response
+if resp.error:
+    # Print the error message
+    print("An error occurred while trying to get the value:", resp.error)
+    # Exit the script
+    sys.exit()
+
 try:
     # Attempt to parse the JSON response
-    resp_list = json.loads(resp)
+    resp_list = json.loads(resp.value)
 except json.decoder.JSONDecodeError:
     print("Agent response decoding fails")
     # Exit the script if JSON decoding fails

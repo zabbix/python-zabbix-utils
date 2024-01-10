@@ -184,7 +184,7 @@ from zabbix_utils import Getter
 agent = Getter(host='127.0.0.1', port=10050)
 resp = agent.get('system.uname')
 
-print(resp)
+print(resp.value)
 # Linux test_server 5.15.0-3.60.5.1.el9uek.x86_64
 ```
 
@@ -206,7 +206,7 @@ logging.basicConfig(
 agent = Getter(host='127.0.0.1', port=10050)
 resp = agent.get('system.uname')
 
-print(resp)
+print(resp.value)
 ```
 
 And then you can see records like the following:

@@ -12,5 +12,10 @@ agent = Getter("127.0.0.1", 10050, source_ip="10.10.1.5")
 # Send a Zabbix agent query for system information (e.g., uname)
 resp = agent.get('system.uname')
 
-# Print the response received from the Zabbix agent
-print(resp)
+# Check if there was an error in the response
+if resp.error:
+    # Print the error message
+    print("An error occurred while trying to get the value:", resp.error)
+else:
+    # Print the value obtained for the specified item key item
+    print("Received value:", resp.value)

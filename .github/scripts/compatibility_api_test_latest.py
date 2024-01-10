@@ -9,7 +9,7 @@ import time
 import unittest
 
 sys.path.append('.')
-from zabbix_utils.getter import Getter
+from zabbix_utils.getter import Getter, AgentResponse
 from zabbix_utils.exceptions import APIRequestError
 from zabbix_utils.api import ZabbixAPI, APIVersion
 from zabbix_utils.sender import ItemValue, Sender, TrapperResponse
@@ -229,7 +229,8 @@ class CompatibilityGetTest(unittest.TestCase):
         resp = self.agent.get('system.uname')
 
         self.assertIsNotNone(resp, "Getting item values was going wrong")
-        self.assertEqual(type(resp), str, "Got value is unexpected")
+        self.assertEqual(type(resp), AgentResponse, "Got value is unexpected")
+        self.assertEqual(type(resp.value), str, "Got value is unexpected")
 
 
 if __name__ == '__main__':
