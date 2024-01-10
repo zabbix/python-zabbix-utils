@@ -18,14 +18,24 @@ items = [
 sender = Sender("127.0.0.1", 10051)
 
 # Send multiple items to the Zabbix server/proxy and receive response
-responses = sender.send(items)
+response = sender.send(items)
 
-# Iterate through the list of responses from Zabbix server/proxy.
-for node, resp in responses.items():
-    # Check if the value sending was successful
-    if resp.failed == 0:
-        # Print a success message along with the response time
-        print(f"Value sent successfully to {node} in {resp.time}")
-    else:
-        # Print a failure message
-        print(f"Failed to send value to {node}")
+# Check if the value sending was successful
+if response.failed == 0:
+    # Print a success message along with the response time
+    print(f"Value sent successfully in {response.time}")
+elif response.details:
+    # Iterate through the list of responses from Zabbix server/proxy.
+    for node, chunks in response.details.items():
+        # Iterate through the list of chunks.
+        for resp in chunks:
+            # Check if the value sending was successful
+            if resp.failed == 0:
+                # Print a success message along with the response time
+                print(f"Value sent successfully to {node} in {resp.time}")
+            else:
+                # Print a failure message
+                print(f"Failed to send value to {node} at chunk step {resp.chunk}")
+else:
+    # Print a failure message
+    print("Failed to send value")

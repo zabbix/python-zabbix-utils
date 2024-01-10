@@ -57,10 +57,13 @@ class TrapperResponse():
         self.__total = 0
         self.__time = 0
         self.__chunk = chunk
+        self.details = None
 
     def __repr__(self) -> str:
         result = {}
         for key, value in self.__dict__.items():
+            if key == 'details':
+                continue
             result[
                 key[len(f"_{self.__class__.__name__}__"):]
             ] = str(value) if isinstance(value, Decimal) else value
@@ -481,46 +484,49 @@ class Sender():
 
         return responses
 
-    def send(self, items: list, merge_responses: bool = True) -> dict:
+    def send(self, items: list) -> TrapperResponse:
         """Sends packets and receives an answer from Zabbix.
 
         Args:
             items (list): List of ItemValue objects.
-            merge_responses (bool, optional): Whether to merge all responses data \
-to a single one. Defaults to `True`.
 
         Returns:
-            dict: Dictionary of TrapperResponse objects for each Node object.
+            TrapperResponse: Response from Zabbix server/proxy.
         """
 
-        result = {}
-
-        if not all(isinstance(item, ItemValue) for item in items):
-            log.debug('Received unexpected item list. It must be a list of ItemValue objects: %s',
-                      json.dumps(items))
-            raise ProcessingError(f"Received unexpected item list. \
-It must be a list of ItemValue objects: {json.dumps(items)}")
-
+        # Split the list of items into chunks of size self.chunk_size.
         chunks = [items[i:i + self.chunk_size] for i in range(0, len(items), self.chunk_size)]
+
+        # Merge responses into a single TrapperResponse object.
+        result = TrapperResponse()
+
+        # TrapperResponse details for each node and chunk.
+        result.details = {}
+
         for i, chunk in enumerate(chunks):
+
+            if not all(isinstance(item, ItemValue) for item in chunk):
+                log.debug('Received unexpected item list. It must be a list of \
+ItemValue objects: %s', json.dumps(chunk))
+                raise ProcessingError(f"Received unexpected item list. \
+It must be a list of ItemValue objects: {json.dumps(chunk)}")
 
             resp_by_node = self.__chunk_send(chunk)
 
+            node_step = 1
             for node, resp in resp_by_node.items():
-                if merge_responses:
-                    if node not in result:
-                        result[node] = TrapperResponse()
-                    result[node].add(resp, i + 1)
-                else:
-                    if node not in result:
-                        result[node] = []
-                    result[node].append(TrapperResponse(i+1).add(resp))
+                result.add(resp, (i + 1) * node_step)
+                node_step += 1
+
+                if node not in result.details:
+                    result.details[node] = []
+                result.details[node].append(TrapperResponse(i+1).add(resp))
 
         return result
 
     def send_value(self, host: str, key: str,
                    value: str, clock: Union[int, None] = None,
-                   ns: Union[int, None] = None, merge_responses: bool = True) -> dict:
+                   ns: Union[int, None] = None) -> TrapperResponse:
         """Sends one value and receives an answer from Zabbix.
 
         Args:
@@ -529,11 +535,9 @@ It must be a list of ItemValue objects: {json.dumps(items)}")
             value (str): Specify item value.
             clock (int, optional): Specify time in Unix timestamp format. Defaults to `None`.
             ns (int, optional): Specify time expressed in nanoseconds. Defaults to `None`.
-            merge_responses (bool, optional): Whether to merge all responses data \
-to a single one. Defaults to `True`.
 
         Returns:
-            dict: Dictionary of TrapperResponse object for each Node object.
+            TrapperResponse: Response from Zabbix server/proxy.
         """
 
-        return self.send([ItemValue(host, key, value, clock, ns)], merge_responses)
+        return self.send([ItemValue(host, key, value, clock, ns)])

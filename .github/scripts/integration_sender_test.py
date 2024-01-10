@@ -34,17 +34,18 @@ class IntegrationSenderTest(unittest.TestCase):
             ItemValue('host3', 'item.key1', '{"msg":"test message"}'),
             ItemValue('host2', 'item.key1', 0, 1695713666, 100)
         ]
-        responses = self.sender.send(items)
+        response = self.sender.send(items)
 
-        self.assertEqual(type(responses), dict, "Sending item values was going wrong")
-        for node, resp in responses.items():
+        self.assertEqual(type(response.details), dict, "Sending item values was going wrong")
+        for node, resp in response.details.items():
             self.assertEqual(type(node), Node, "Sending item values was going wrong")
-            self.assertEqual(type(resp), TrapperResponse, "Sending item values was going wrong")
-            for key in ('processed', 'failed', 'total', 'time', 'chunk'):
-                try:
-                    self.assertIsNotNone(getattr(resp, key), f"There aren't expected '{key}' value")
-                except AttributeError:
-                    self.fail(f"raised unexpected Exception for attribute: {key}")
+            for item in resp:
+                self.assertEqual(type(item), TrapperResponse, "Sending item values was going wrong")
+                for key in ('processed', 'failed', 'total', 'time', 'chunk'):
+                    try:
+                        self.assertIsNotNone(getattr(item, key), f"There aren't expected '{key}' value")
+                    except AttributeError:
+                        self.fail(f"raised unexpected Exception for attribute: {key}")
 
 
 if __name__ == '__main__':

@@ -192,12 +192,17 @@ class CompatibilitySenderTest(unittest.TestCase):
             ItemValue(self.hostname, self.itemkey, 0, 1695713666, 100),
             ItemValue(self.hostname, self.itemkey, 5.5, 1695713666)
         ]
-        resp = list(self.sender.send(items).values())[0]
-
+        resp = self.sender.send(items)
         self.assertEqual(type(resp), TrapperResponse, "Sending item values was going wrong")
         self.assertEqual(resp.total, len(items), "Total number of the sent values is unexpected")
         self.assertEqual(resp.processed, 4, "Number of the processed values is unexpected")
         self.assertEqual(resp.failed, (resp.total - resp.processed), "Number of the failed values is unexpected")
+
+        first_chunk = list(resp.details.values())[0][0]
+        self.assertEqual(type(first_chunk), TrapperResponse, "Sending item values was going wrong")
+        self.assertEqual(first_chunk.total, len(items), "Total number of the sent values is unexpected")
+        self.assertEqual(first_chunk.processed, 4, "Number of the processed values is unexpected")
+        self.assertEqual(first_chunk.failed, (first_chunk.total - first_chunk.processed), "Number of the failed values is unexpected")
 
 
 class CompatibilityGetTest(unittest.TestCase):
