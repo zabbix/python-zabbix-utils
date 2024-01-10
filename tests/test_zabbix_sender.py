@@ -69,7 +69,7 @@ class TestSender(unittest.TestCase):
 
         test_cases = [
             {
-                'input': {'server':'127.0.0.1', 'source_ip': '10.10.0.0'},
+                'input': {'source_ip': '10.10.0.0'},
                 'clusters': json.dumps([[["127.0.0.1", 10051]]]),
                 'source_ip': '10.10.0.0'
             },

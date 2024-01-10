@@ -5,7 +5,7 @@
 
 from zabbix_utils import Sender
 
-# Toy can create an instance of Sender using the default configuration file path
+# You can create an instance of Sender using the default configuration file path
 # (typically '/etc/zabbix/zabbix_agentd.conf')
 #
 # sender = Sender(use_config=True)

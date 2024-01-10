@@ -174,7 +174,7 @@ class ZabbixProtocol():
         """Create a packet for sending via the Zabbix protocol.
 
         Args:
-            payload (Union[bytes, str, list, dict]): Payload of the future packet
+            payload (bytes|str|list|dict): Payload of the future packet
             log (Logger): Logger object
             compression (bool, optional): Compression use flag. Defaults to `False`.
 
