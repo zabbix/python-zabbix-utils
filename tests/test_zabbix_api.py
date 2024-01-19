@@ -478,57 +478,73 @@ class TestModuleUtils(unittest.TestCase):
 
         test_cases = [
             {
-                'input': {"auth": "q2BTIw85kqmjtXl3","token": "jZAC51wHuWdwvQnx"},
+                'input': [{"auth": "q2BTIw85kqmjtXl3","token": "jZAC51wHuWdwvQnx"}],
                 'output': {"auth": mask, "token": mask}
             },
             {
-                'input': {"token": "jZAC51wHuWdwvQnxwbP2T55vh6R5R2uW"},
+                'input': [{"token": "jZAC51wHuWdwvQnxwbP2T55vh6R5R2uW"}],
                 'output': {"token": f"jZAC{mask}R2uW"}
             },
             {
-                'input': {"auth": "q2BTIw85kqmjtXl3zCgSSR26gwCGVFMK"},
+                'input': [{"auth": "q2BTIw85kqmjtXl3zCgSSR26gwCGVFMK"}],
                 'output': {"auth": f"q2BT{mask}VFMK"}
             },
             {
-                'input': {"sessionid": "p1xqXSf2HhYWa2ml6R5R2uWwbP2T55vh"},
+                'input': [{"sessionid": "p1xqXSf2HhYWa2ml6R5R2uWwbP2T55vh"}],
                 'output': {"sessionid": f"p1xq{mask}55vh"}
             },
             {
-                'input': {"password": "HlphkcKgQKvofQHP"},
+                'input': [{"password": "HlphkcKgQKvofQHP"}],
                 'output': {"password": mask}
             },
             {
-                'input': {"result": "p1xqXSf2HhYWa2ml6R5R2uWwbP2T55vh"},
+                'input': [{"result": "p1xqXSf2HhYWa2ml6R5R2uWwbP2T55vh"}],
                 'output': {"result": f"p1xq{mask}55vh"}
             },
             {
-                'input': {"result": "6.0.0"},
+                'input': [{"result": "6.0.0"}],
                 'output': {"result": "6.0.0"}
             },
             {
-                'input': {"result": ["10"]},
+                'input': [{"result": ["10"]}],
                 'output': {"result": ["10"]}
             },
             {
-                'input': {"result": [{"token": "jZAC51wHuWdwvQnxwbP2T55vh6R5R2uW"}]},
+                'input': [{"result": [{"token": "jZAC51wHuWdwvQnxwbP2T55vh6R5R2uW"}]}],
                 'output': {"result": [{"token": f"jZAC{mask}R2uW"}]}
             },
             {
-                'input': {"result": [["10"],["15"]]},
+                'input': [{"result": [["10"],["15"]]}],
                 'output': {"result": [["10"],["15"]]}
             },
             {
-                'input': {"result": [[{"token": "jZAC51wHuWdwvQnxwbP2T55vh6R5R2uW"}]]},
+                'input': [{"result": [[{"token": "jZAC51wHuWdwvQnxwbP2T55vh6R5R2uW"}]]}],
                 'output': {"result": [[{"token": f"jZAC{mask}R2uW"}]]}
             },
             {
-                'input': {"result": ["jZAC51wHuWdwvQnxwbP2T55vh6R5R2uW"]},
+                'input': [{"result": ["jZAC51wHuWdwvQnxwbP2T55vh6R5R2uW"]}],
                 'output': {"result": [f"jZAC{mask}R2uW"]}
+            },
+            {
+                'input': [{"result": {"passwords": ["HlphkcKgQKvofQHP"]}}],
+                'output': {"result": {"passwords": [mask]}}
+            },
+            {
+                'input': [{"result": {"passwords": ["HlphkcKgQKvofQHP"]}}, {}],
+                'output': {"result": {"passwords": ["HlphkcKgQKvofQHP"]}}
+            },
+            {
+                'input': [{"result": {"tokens": ["jZAC51wHuWdwvQnxwbP2T55vh6R5R2uW"]}}],
+                'output': {"result": {"tokens": [f"jZAC{mask}R2uW"]}}
+            },
+            {
+                'input': [{"result": ["jZAC51wHuWdwvQnxwbP2T55vh6R5R2uW"]}, {}],
+                'output': {"result": [f"jZAC51wHuWdwvQnxwbP2T55vh6R5R2uW"]}
             }
         ]
 
         for case in test_cases:
-            result = ModuleUtils.hide_private(case['input'])
+            result = ModuleUtils.hide_private(*case['input'])
             self.assertEqual(result, case['output'],
                              f"unexpected output with input data: {case['input']}")
 
