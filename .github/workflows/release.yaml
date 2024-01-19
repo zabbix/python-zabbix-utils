@@ -56,6 +56,10 @@ jobs:
           name: ${{ env.LIBRARY_VERSION }}
           draft: true
           prerelease: false
+          makeLatest: true
+          skipIfReleaseExists: true
+          replacesArtifacts: true
+          removeArtifacts: true
           tag: "v${{ env.LIBRARY_VERSION }}"
           body: "Please see [CHANGELOG.md](${{ github.server_url }}/${{ github.repository }}/blob/main/CHANGELOG.md)"
           artifacts: dist/*
