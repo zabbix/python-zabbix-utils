@@ -189,7 +189,10 @@ print(response)
 # {"processed": 2, "failed": 0, "total": 2, "time": "0.000103", "chunk": 2}
 
 print(response.details)
-# {zabbix.cluster1.node1:10051: [{"processed": 1, "failed": 0, "total": 1, "time": "0.000050", "chunk": 1}], zabbix.cluster2.node2:20051: [{"processed": 1, "failed": 0, "total": 1, "time": "0.000053", "chunk": 1}]}
+# {
+#     zabbix.cluster1.node1:10051: [{"processed": 1, "failed": 0, "total": 1, "time": "0.000050", "chunk": 1}],
+#     zabbix.cluster2.node2:20051: [{"processed": 1, "failed": 0, "total": 1, "time": "0.000053", "chunk": 1}]
+# }
 ```
 
 In such case, the value will be sent to the first available node of each cluster.
