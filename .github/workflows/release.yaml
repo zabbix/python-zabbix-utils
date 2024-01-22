@@ -48,12 +48,16 @@ jobs:
         with:
           name: Archive-v${{ env.LIBRARY_VERSION }}
           path: dist/*
+      - name: Create release notes
+        run: |
+          grep -Pzo '(?s)^## \[${{ env.LIBRARY_VERSION }}\].*?(?=## \[)' CHANGELOG.md | sed '$ s/.$//' > RELEASE_NOTES.md
+          sed -i 's/\[${{ env.LIBRARY_VERSION }}\]/Release [v${{ env.LIBRARY_VERSION }}]/' RELEASE_NOTES.md
       - name: Create release
         uses: ncipollo/release-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: ${{ env.LIBRARY_VERSION }}
+          name: v${{ env.LIBRARY_VERSION }}
           draft: true
           prerelease: false
           makeLatest: true
@@ -61,5 +65,5 @@ jobs:
           replacesArtifacts: true
           removeArtifacts: true
           tag: "v${{ env.LIBRARY_VERSION }}"
-          body: "Please see [CHANGELOG.md](${{ github.server_url }}/${{ github.repository }}/blob/main/CHANGELOG.md)"
+          bodyFile: RELEASE_NOTES.md
           artifacts: dist/*
