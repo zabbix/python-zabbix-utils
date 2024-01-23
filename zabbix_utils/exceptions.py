@@ -35,7 +35,7 @@ class APIRequestError(ModuleBaseException):
     """Exception class when Zabbix API returns error by request.
 
     Args:
-        api_error (Union[str, dict]): Raw error message from Zabbix API.
+        api_error (str|dict): Raw error message from Zabbix API.
     """
     def __init__(self, api_error: Union[str, dict]):
         if isinstance(api_error, dict):

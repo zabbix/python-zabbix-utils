@@ -36,7 +36,12 @@ from zabbix_utils.common import ZabbixProtocol
 DEFAULT_VALUES = {
     'server': 'localhost',
     'port': 10051,
-    'source_ip': '192.168.1.1'
+    'source_ip': '192.168.1.1',
+    'clusters': [
+        ['zabbix.cluster.node1','zabbix.cluster.node2:20051'],
+        ['zabbix.cluster2.node1','zabbix.cluster2.node2'],
+        ['zabbix.domain']
+    ]
 }
 
 ZABBIX_CONFIG = [
@@ -71,6 +76,25 @@ class TestSender(unittest.TestCase):
             {
                 'input': {'server':'localhost', 'port': 10151},
                 'clusters': json.dumps([[["localhost", 10151]]]),
+                'source_ip': None
+            },
+            {
+                'input': {'server':'localhost', 'port': 10151, 'clusters': DEFAULT_VALUES['clusters']},
+                'clusters': json.dumps([
+                    [["zabbix.cluster.node1", 10051], ["zabbix.cluster.node2", 20051]],
+                    [["zabbix.cluster2.node1", 10051], ["zabbix.cluster2.node2", 10051]],
+                    [["zabbix.domain", 10051]],
+                    [["localhost", 10151]]
+                ]),
+                'source_ip': None
+            },
+            {
+                'input': {'clusters': DEFAULT_VALUES['clusters']},
+                'clusters': json.dumps([
+                    [["zabbix.cluster.node1", 10051], ["zabbix.cluster.node2", 20051]],
+                    [["zabbix.cluster2.node1", 10051], ["zabbix.cluster2.node2", 10051]],
+                    [["zabbix.domain", 10051]]
+                ]),
                 'source_ip': None
             },
             {
@@ -241,30 +265,48 @@ class TestSender(unittest.TestCase):
                         items.append(ItemValue('host', 'key', 'true'))
                 resp = sender.send(items)
 
-                self.assertEqual(str(resp['127.0.0.1:10051']), case['output'],
+                self.assertEqual(str(resp), case['output'],
                                  f"unexpected output with input data: {case['input']}")
 
                 self.assertEqual(str(resp), repr(resp),
                                  f"unexpected output with input data: {case['input']}")
 
-                for item in resp.values():
-                    try:
-                        processed = item.processed
-                        failed = item.failed
-                        total = item.total
-                        time = item.time
-                        chunk = item.chunk
-                    except Exception:
-                        self.fail(f"raised unexpected Exception for responce: {item}")
+                try:
+                    processed = resp.processed
+                    failed = resp.failed
+                    total = resp.total
+                    time = resp.time
+                    chunk = resp.chunk
+                except Exception:
+                    self.fail(f"raised unexpected Exception for responce: {resp}")
+
+                self.assertEqual(type(resp.details['127.0.0.1:10051']), list,
+                                 f"unexpected output with input data: {case['input']}")
+
+                for chunks in resp.details.values():
+                    for chunk in chunks:
+                        try:
+                            processed = chunk.processed
+                            failed = chunk.failed
+                            total = chunk.total
+                            time = chunk.time
+                            chunk = chunk.chunk
+                        except Exception:
+                            self.fail(f"raised unexpected Exception for responce: {chunk}")
 
         def mock_chunk_send_empty(self, items):
-            return {}
+            result = {"127.0.0.1:10051": {
+                'response': 'success',
+                'info': 'processed: 1; failed: 0; total: 1; seconds spent: 0.000100'
+            }}
+
+            return result
 
         with patch.multiple(Sender,
                             _Sender__chunk_send=mock_chunk_send_empty):
             sender = Sender()
             resp = sender.send_value('test', 'test', 1)
-            self.assertEqual(str(resp), '{}',
+            self.assertEqual(str(resp), '{"processed": 1, "failed": 0, "total": 1, "time": "0.000100", "chunk": 1}',
                                  f"unexpected output with input data: {case['input']}")
 
     def test_send_value(self):
@@ -301,7 +343,7 @@ class TestSender(unittest.TestCase):
                 sender = Sender()
                 resp = sender.send_value(**case['input'])
 
-                self.assertEqual(str(resp['127.0.0.1:10051']), case['output'],
+                self.assertEqual(str(resp), case['output'],
                                  f"unexpected output with input data: {case['input']}")
 
 
@@ -313,15 +355,15 @@ class TestCluster(unittest.TestCase):
 
         test_cases = [
             {
-                'input': '127.0.0.1',
+                'input': ['127.0.0.1'],
                 'clusters': json.dumps([["127.0.0.1", 10051]])
             },
             {
-                'input': 'localhost:10151',
+                'input': ['localhost:10151'],
                 'clusters': json.dumps([["localhost", 10151]])
             },
             {
-                'input': 'zabbix.cluster.node1;zabbix.cluster.node2:20051;zabbix.cluster.node3:30051',
+                'input': ['zabbix.cluster.node1','zabbix.cluster.node2:20051','zabbix.cluster.node3:30051'],
                 'clusters': json.dumps([
                     ["zabbix.cluster.node1", 10051], ["zabbix.cluster.node2", 20051], ["zabbix.cluster.node3", 30051]
                 ])

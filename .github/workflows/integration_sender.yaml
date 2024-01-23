@@ -2,10 +2,14 @@ name: sender
 run-name: Run Zabbix sender integration test
 
 on:
-  #push:
-  #  branches: [main]
-  #pull_request:
-  #  branches: [main]
+  push:
+    branches: [main]
+    paths:
+      - '**sender.py'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**sender.py'
   workflow_dispatch:
 
 env:

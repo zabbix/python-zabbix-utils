@@ -5,6 +5,23 @@
 
 from zabbix_utils import ItemValue, Sender
 
+# You can create an instance of Sender specifying server address and port:
+#
+# sender = Sender(server='127.0.0.1', port=10051)
+#
+# Or you can create an instance of Sender specifying a list of Zabbix clusters:
+zabbix_clusters = [
+    ['zabbix.cluster1.node1', 'zabbix.cluster1.node2:10051'],
+    ['zabbix.cluster2.node1:10051', 'zabbix.cluster2.node2:20051', 'zabbix.cluster2.node3']
+]
+sender = Sender(clusters=zabbix_clusters)
+# You can also specify Zabbix clusters at the same time with server address and port:
+#
+# sender = Sender(server='127.0.0.1', port=10051, clusters=zabbix_clusters)
+#
+# In such case, specified server address and port will be appended to the cluster list
+# as a cluster of a single node
+
 # List of ItemValue instances representing items to be sent
 items = [
     ItemValue('host1', 'item.key1', 10),
@@ -13,9 +30,6 @@ items = [
     ItemValue('host3', 'item.key1', '{"msg":"test message"}'),
     ItemValue('host2', 'item.key1', 0, 1695713666, 100)
 ]
-
-# Create an instance of the Sender class with the specified server details
-sender = Sender("127.0.0.1", 10051)
 
 # Send multiple items to the Zabbix server/proxy and receive response
 response = sender.send(items)

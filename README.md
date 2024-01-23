@@ -146,10 +146,10 @@ To send item values to a Zabbix server or a Zabbix proxy you can import and use 
 from zabbix_utils import Sender
 
 sender = Sender(server='127.0.0.1', port=10051)
-resp = sender.send_value('host', 'item.key', 'value', 1695713666)
+response = sender.send_value('host', 'item.key', 'value', 1695713666)
 
-print(resp)
-# {"127.0.0.1:10051": {"processed": 1, "failed": 0, "total": 1, "time": "0.000338", "chunk": 1}}
+print(response)
+# {"processed": 1, "failed": 0, "total": 1, "time": "0.000338", "chunk": 1}
 ```
 
 Or you can prepare a list of item values and send all at once:
@@ -169,8 +169,33 @@ sender = Sender(server='127.0.0.1', port=10051)
 response = sender.send(items)
 
 print(response)
-# {"127.0.0.1:10051": {"processed": 5, "failed": 0, "total": 5, "time": "0.001661", "chunk": 1}}
+# {"processed": 5, "failed": 0, "total": 5, "time": "0.001661", "chunk": 1}
 ```
+
+If you need to send values to several Zabbix clusters at once, you can do this by passing a list of Zabbix clusters:
+
+```python
+from zabbix_utils import Sender
+
+zabbix_clusters = [
+    ['zabbix.cluster1.node1', 'zabbix.cluster1.node2:10051'],
+    ['zabbix.cluster2.node1:10051', 'zabbix.cluster2.node2:20051', 'zabbix.cluster2.node3']
+]
+
+sender = Sender(clusters=zabbix_clusters)
+response = sender.send_value('host', 'item.key', 'value', 1695713666)
+
+print(response)
+# {"processed": 2, "failed": 0, "total": 2, "time": "0.000103", "chunk": 2}
+
+print(response.details)
+# {
+#     zabbix.cluster1.node1:10051: [{"processed": 1, "failed": 0, "total": 1, "time": "0.000050", "chunk": 1}],
+#     zabbix.cluster2.node2:20051: [{"processed": 1, "failed": 0, "total": 1, "time": "0.000053", "chunk": 1}]
+# }
+```
+
+In such case, the value will be sent to the first available node of each cluster.
 
 > Please, refer to the [Zabbix sender protocol](https://www.zabbix.com/documentation/current/manual/appendix/protocols/zabbix_sender) and the [using examples](https://github.com/zabbix/python-zabbix-utils/tree/main/examples/sender) for more information.
 
@@ -184,7 +209,7 @@ from zabbix_utils import Getter
 agent = Getter(host='127.0.0.1', port=10050)
 resp = agent.get('system.uname')
 
-print(resp)
+print(resp.value)
 # Linux test_server 5.15.0-3.60.5.1.el9uek.x86_64
 ```
 
@@ -206,7 +231,7 @@ logging.basicConfig(
 agent = Getter(host='127.0.0.1', port=10050)
 resp = agent.get('system.uname')
 
-print(resp)
+print(resp.value)
 ```
 
 And then you can see records like the following:

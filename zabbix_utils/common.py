@@ -50,9 +50,11 @@ class ModuleUtils():
     PRIVATE_FIELDS = {
         "token": r"^.+$",
         "auth": r"^.+$",
+        "passwd": r"^.+$",
         "sessionid": r"^.+$",
         "password": r"^.+$",
-        "result": r"^[A-Za-z0-9]{32}$",
+        "current_passwd": r"^.+$",
+        "result": r"^[A-Za-z0-9]{32}$",  # To hide only token or sessionid in result
     }
 
     @classmethod
@@ -107,7 +109,7 @@ Defaults to 4.
             dict: Result dictionary without private data.
         """
 
-        private_fields = fields if fields else cls.PRIVATE_FIELDS
+        private_fields = fields if fields is not None else cls.PRIVATE_FIELDS
 
         if not isinstance(input_data, dict):
             raise TypeError(f"Unsupported data type '{type(input_data).__name__}', \
@@ -120,18 +122,23 @@ only 'dict' is expected")
             return re.sub(private_fields[k], gen_repl, v)
 
         def hide_dict(v):
-            return cls.hide_private(v)
+            return cls.hide_private(v, private_fields)
 
-        def hide_list(v):
+        def hide_list(k, v):
             result = []
             for item in v:
                 if isinstance(item, dict):
                     result.append(hide_dict(item))
                     continue
                 if isinstance(item, list):
-                    result.append(hide_list(item))
+                    result.append(hide_list(k, item))
                     continue
                 if isinstance(item, str):
+                    if k.rstrip('s') in private_fields:
+                        result.append(hide_str(k.rstrip('s'), item))
+                        continue
+                    # The 'result' regex is used to hide only token or
+                    # sessionid format for unknown values
                     if 'result' in private_fields:
                         result.append(hide_str('result', item))
                         continue
@@ -147,7 +154,7 @@ only 'dict' is expected")
             if isinstance(value, dict):
                 result_data[key] = hide_dict(value)
             if isinstance(value, list):
-                result_data[key] = hide_list(value)
+                result_data[key] = hide_list(key, value)
 
         return result_data
 
@@ -174,7 +181,7 @@ class ZabbixProtocol():
         """Create a packet for sending via the Zabbix protocol.
 
         Args:
-            payload (Union[bytes, str, list, dict]): Payload of the future packet
+            payload (bytes|str|list|dict): Payload of the future packet
             log (Logger): Logger object
             compression (bool, optional): Compression use flag. Defaults to `False`.
 

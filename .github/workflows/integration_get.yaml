@@ -2,10 +2,14 @@ name: get
 run-name: Run Zabbix get integration test
 
 on:
-  #push:
-  #  branches: [main]
-  #pull_request:
-  #  branches: [main]
+  push:
+    branches: [main]
+    paths:
+      - '**get.py'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**get.py'
   workflow_dispatch:
 
 env:

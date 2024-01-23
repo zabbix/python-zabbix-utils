@@ -30,7 +30,7 @@ class IntegrationGetTest(unittest.TestCase):
 
         self.assertIsNotNone(resp, "Getting item values was going wrong")
         try:
-            resp_list = json.loads(resp)
+            resp_list = json.loads(resp.value)
         except json.decoder.JSONDecodeError:
             self.fail(f"raised unexpected Exception while parsing response: {resp}")
 
