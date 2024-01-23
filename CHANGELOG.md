@@ -1,3 +1,20 @@
+## [1.1.0](https://github.com/zabbix/python-zabbix-utils/compare/v1.0.3...v1.1.0) (2024-01-23)
+
+### Breaking Changes: 
+
+- changed the format of the Sender response
+- changed the format of the Getter response
+
+### Features:
+
+- implemented support for specifying Zabbix clusters in Sender
+- implemented pre-processing of the agent response
+
+### Bug fixes:
+
+- fixed issue with hiding private (sensitive) fields in the log
+- fixed small bugs and flaws
+
 ## [1.0.3](https://github.com/zabbix/python-zabbix-utils/compare/v1.0.2...v1.0.3) (2024-01-09)
 
 ### Documentation

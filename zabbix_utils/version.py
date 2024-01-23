@@ -22,7 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-__version__ = "1.0.3"
+__version__ = "1.1.0"
 
 __min_supported__ = 5.0
 __max_supported__ = 7.0
