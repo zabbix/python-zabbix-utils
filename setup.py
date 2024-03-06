@@ -45,7 +45,7 @@ setuptools.setup(
     test_suite='tests',
     packages=["zabbix_utils"],
     tests_require=["unittest"],
-    install_requires=["typing_extensions>=4.0.0;python_version<'3.11'"],
+    install_requires=[],
     python_requires='>=3.8',
     project_urls={
         'Zabbix': 'https://www.zabbix.com/documentation/current',
