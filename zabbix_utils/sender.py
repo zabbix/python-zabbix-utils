@@ -30,11 +30,6 @@ import configparser
 from decimal import Decimal
 
 from typing import Callable, Union
-# For Python less 3.11 compatibility
-try:
-    from typing import Self  # type: ignore
-except ImportError:
-    from typing_extensions import Self
 
 from .logger import EmptyHandler
 from .common import ZabbixProtocol
@@ -100,7 +95,7 @@ class TrapperResponse():
 
         return res
 
-    def add(self, response: dict, chunk: Union[int, None] = None) -> Self:
+    def add(self, response: dict, chunk: Union[int, None] = None):
         """Add and merge response data from Zabbix.
 
         Args:
@@ -285,7 +280,7 @@ class Cluster():
         """Returns list of Node objects.
 
         Returns:
-            list List of Node objects
+            list: List of Node objects
         """
 
         return self.__nodes

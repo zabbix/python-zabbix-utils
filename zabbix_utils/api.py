@@ -35,11 +35,6 @@ from os import environ as env
 from urllib.error import URLError
 
 from typing import Callable, Union, Any, List
-# For Python less 3.11 compatibility
-try:
-    from typing import Self  # type: ignore
-except ImportError:
-    from typing_extensions import Self
 
 from .common import ModuleUtils
 from .logger import EmptyHandler, SensitiveFilter
@@ -74,7 +69,7 @@ class APIObject():
             TypeError: Raises if gets unexpected arguments.
 
         Returns:
-            Self: Zabbix API method.
+            Callable: Zabbix API method.
         """
 
         # For compatibility with Python less 3.9 versions
@@ -256,13 +251,13 @@ class ZabbixAPI():
 
         return APIObject(name, self)
 
-    def __enter__(self) -> Self:
+    def __enter__(self) -> Callable:
         return self
 
     def __exit__(self, *args) -> None:
         self.logout()
 
-    def __basic_auth(self, user: str, password: str) -> Self:
+    def __basic_auth(self, user: str, password: str) -> None:
         """Enable Basic Authentication using.
 
         Args:
@@ -302,7 +297,7 @@ class ZabbixAPI():
         return self.api_version()
 
     def login(self, token: Union[str, None] = None, user: Union[str, None] = None,
-              password: Union[str, None] = None) -> Self:
+              password: Union[str, None] = None) -> None:
         """Login to Zabbix API.
 
         Args:
