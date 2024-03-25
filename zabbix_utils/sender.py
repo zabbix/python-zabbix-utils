@@ -22,272 +22,24 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-import re
 import json
 import socket
 import logging
 import configparser
-from decimal import Decimal
 
-from typing import Callable, Union
+from typing import Callable, Optional, Union
 
 from .logger import EmptyHandler
 from .common import ZabbixProtocol
 from .exceptions import ProcessingError
+from .types import TrapperResponse, ItemValue, Cluster
 
 log = logging.getLogger(__name__)
 log.addHandler(EmptyHandler())
 
 
-class TrapperResponse():
-    """Contains response from Zabbix server/proxy.
-
-    Args:
-        chunk (int, optional): Current chunk number. Defaults to `1`.
-    """
-
-    def __init__(self, chunk: int = 1):
-        self.__processed = 0
-        self.__failed = 0
-        self.__total = 0
-        self.__time = 0
-        self.__chunk = chunk
-        self.details = None
-
-    def __repr__(self) -> str:
-        result = {}
-        for key, value in self.__dict__.items():
-            if key == 'details':
-                continue
-            result[
-                key[len(f"_{self.__class__.__name__}__"):]
-            ] = str(value) if isinstance(value, Decimal) else value
-
-        return json.dumps(result)
-
-    def parse(self, response: dict) -> dict:
-        """Parse response from Zabbix.
-
-        Args:
-            response (dict): Raw response from Zabbix.
-
-        Raises:
-            ProcessingError: Raises if unexpected response received
-        """
-
-        fields = {
-            "processed": ('[Pp]rocessed', r'\d+'),
-            "failed": ('[Ff]ailed', r'\d+'),
-            "total": ('[Tt]otal', r'\d+'),
-            "time": ('[Ss]econds spent', r'\d+\.\d+')
-        }
-
-        pattern = re.compile(
-            r";\s+?".join([rf"{r[0]}:\s+?(?P<{k}>{r[1]})" for k, r in fields.items()])
-        )
-
-        info = response.get('info')
-        if not info:
-            log.debug('Received unexpected response: %s', response)
-            raise ProcessingError(f"Received unexpected response: {response}")
-
-        res = pattern.search(info).groupdict()
-
-        return res
-
-    def add(self, response: dict, chunk: Union[int, None] = None):
-        """Add and merge response data from Zabbix.
-
-        Args:
-            response (dict): Raw response from Zabbix.
-            chunk (int, optional): Chunk number. Defaults to `None`.
-        """
-
-        resp = self.parse(response)
-
-        def add_value(cls, key, value):
-            setattr(
-                cls,
-                key,
-                getattr(cls, key) + value
-            )
-
-        for k, v in resp.items():
-            add_value(
-                self,
-                f"_{self.__class__.__name__}__{k}",
-                Decimal(v) if '.' in v else int(v)
-            )
-        if chunk is not None:
-            self.__chunk = chunk
-
-        return self
-
-    @property
-    def processed(self) -> int:
-        """Returns number of processed packets.
-
-        Returns:
-            int: Number of processed packets.
-        """
-
-        return self.__processed
-
-    @property
-    def failed(self) -> int:
-        """Returns number of failed packets.
-
-        Returns:
-            int: Number of failed packets.
-        """
-
-        return self.__failed
-
-    @property
-    def total(self) -> int:
-        """Returns total number of packets.
-
-        Returns:
-            int: Total number of packets.
-        """
-
-        return self.__total
-
-    @property
-    def time(self) -> int:
-        """Returns value of spent time.
-
-        Returns:
-            int: Spent time for the packets sending.
-        """
-
-        return self.__time
-
-    @property
-    def chunk(self) -> int:
-        """Returns current chunk number.
-
-        Returns:
-            int: Number of the current chunk.
-        """
-
-        return self.__chunk
-
-
-class ItemValue():
-    """Contains data of a single item value.
-
-    Args:
-        host (str): Specify host name the item belongs to (as registered in Zabbix frontend).
-        key (str): Specify item key to send value to.
-        value (str): Specify item value.
-        clock (int, optional): Specify time in Unix timestamp format. Defaults to `None`.
-        ns (int, optional): Specify time expressed in nanoseconds. Defaults to `None`.
-    """
-
-    def __init__(self, host: str, key: str, value: str,
-                 clock: Union[int, None] = None, ns: Union[int, None] = None):
-        self.host = str(host)
-        self.key = str(key)
-        self.value = str(value)
-        self.clock = None
-        self.ns = None
-
-        if clock is not None:
-            try:
-                self.clock = int(clock)
-            except ValueError:
-                raise ValueError(
-                    'The clock value must be expressed in the Unix Timestamp format') from None
-
-        if ns is not None:
-            try:
-                self.ns = int(ns)
-            except ValueError:
-                raise ValueError(
-                    'The ns value must be expressed in the integer value of nanoseconds') from None
-
-    def __str__(self) -> str:
-        return json.dumps(self.to_json(), ensure_ascii=False)
-
-    def __repr__(self) -> str:
-        return self.__str__()
-
-    def to_json(self) -> dict:
-        """Represents ItemValue object in dictionary for json.
-
-        Returns:
-            dict: Object attributes in dictionary.
-        """
-
-        return {k: v for k, v in self.__dict__.items() if v is not None}
-
-
-class Node():
-    """Contains one Zabbix node object.
-
-    Args:
-        addr (str): Listen address of Zabbix server.
-        port (int, str): Listen port of Zabbix server.
-
-    Raises:
-        TypeError: Raises if not integer value was received.
-    """
-
-    def __init__(self, addr: str, port: Union[int, str]):
-        self.address = addr if addr != '0.0.0.0/0' else '127.0.0.1'
-        try:
-            self.port = int(port)
-        except ValueError:
-            raise TypeError('Port must be an integer value') from None
-
-    def __str__(self) -> str:
-        return f"{self.address}:{self.port}"
-
-    def __repr__(self) -> str:
-        return self.__str__()
-
-
-class Cluster():
-    """Contains Zabbix node objects in a cluster object.
-
-    Args:
-        addr (list): Raw list of node addresses.
-    """
-
-    def __init__(self, addr: list):
-        self.__nodes = self.__parse_ha_node(addr)
-
-    def __parse_ha_node(self, node_list: list) -> list:
-        nodes = []
-        for node_item in node_list:
-            node_item = node_item.strip()
-            if ':' in node_item:
-                nodes.append(Node(*node_item.split(':')))
-            else:
-                nodes.append(Node(node_item, '10051'))
-
-        return nodes
-
-    def __str__(self) -> str:
-        return json.dumps([(node.address, node.port) for node in self.__nodes])
-
-    def __repr__(self) -> str:
-        return self.__str__()
-
-    @property
-    def nodes(self) -> list:
-        """Returns list of Node objects.
-
-        Returns:
-            list: List of Node objects
-        """
-
-        return self.__nodes
-
-
 class Sender():
-    """Zabbix sender implementation.
+    """Zabbix sender synchronous implementation.
 
     Args:
         server (str, optional): Zabbix server address. Defaults to `'127.0.0.1'`.
@@ -304,12 +56,12 @@ class Sender():
 `/etc/zabbix/zabbix_agentd.conf`.
     """
 
-    def __init__(self, server: Union[str, None] = None, port: int = 10051,
+    def __init__(self, server: Optional[str] = None, port: int = 10051,
                  use_config: bool = False, timeout: int = 10,
-                 use_ipv6: bool = False, source_ip: Union[str, None] = None, 
-                 chunk_size: int = 250, clusters: Union[tuple, list, None] = None,
-                 socket_wrapper: Union[Callable, None] = None, compression: bool = False,
-                 config_path: Union[str, None] = '/etc/zabbix/zabbix_agentd.conf'):
+                 use_ipv6: bool = False, source_ip: Optional[str] = None,
+                 chunk_size: int = 250, clusters: Union[tuple, list] = None,
+                 socket_wrapper: Optional[Callable] = None, compression: bool = False,
+                 config_path: Optional[str] = '/etc/zabbix/zabbix_agentd.conf'):
         self.timeout = timeout
         self.use_ipv6 = use_ipv6
         self.tls = {}
@@ -364,10 +116,10 @@ class Sender():
             config.read_string('[root]\n' + cfg.read())
         self.__read_config(config['root'])
 
-    def __get_response(self, conn: socket) -> Union[str, None]:
+    def __get_response(self, conn: socket) -> Optional[str]:
         try:
             result = json.loads(
-                ZabbixProtocol.parse_packet(conn, log, ProcessingError)
+                ZabbixProtocol.parse_sync_packet(conn, log, ProcessingError)
             )
         except json.decoder.JSONDecodeError as err:
             log.debug('Unexpected response was received from Zabbix.')
@@ -493,7 +245,11 @@ class Sender():
         chunks = [items[i:i + self.chunk_size] for i in range(0, len(items), self.chunk_size)]
 
         # Merge responses into a single TrapperResponse object.
-        result = TrapperResponse()
+        try:
+            result = TrapperResponse()
+        except ProcessingError as err:
+            log.debug(err)
+            raise ProcessingError(err) from err
 
         # TrapperResponse details for each node and chunk.
         result.details = {}
@@ -510,7 +266,11 @@ It must be a list of ItemValue objects: {json.dumps(chunk)}")
 
             node_step = 1
             for node, resp in resp_by_node.items():
-                result.add(resp, (i + 1) * node_step)
+                try:
+                    result.add(resp, (i + 1) * node_step)
+                except ProcessingError as err:
+                    log.debug(err)
+                    raise ProcessingError(err) from None
                 node_step += 1
 
                 if node not in result.details:
@@ -520,8 +280,8 @@ It must be a list of ItemValue objects: {json.dumps(chunk)}")
         return result
 
     def send_value(self, host: str, key: str,
-                   value: str, clock: Union[int, None] = None,
-                   ns: Union[int, None] = None) -> TrapperResponse:
+                   value: str, clock: Optional[int] = None,
+                   ns: Optional[int] = None) -> TrapperResponse:
         """Sends one value and receives an answer from Zabbix.
 
         Args:

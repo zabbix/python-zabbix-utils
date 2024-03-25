@@ -239,8 +239,8 @@ class ZabbixProtocol():
         return buf
 
     @classmethod
-    def parse_packet(cls, conn: socket, log: Logger, exception) -> str:
-        """Parse a received Zabbix protocol packet.
+    def parse_sync_packet(cls, conn: socket, log: Logger, exception) -> str:
+        """Parse a received synchronously Zabbix protocol packet.
 
         Args:
             conn (socket): Opened socket connection

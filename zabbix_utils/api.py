@@ -22,7 +22,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-import re
 import ssl
 import json
 import base64
@@ -34,8 +33,9 @@ from uuid import uuid4
 from os import environ as env
 from urllib.error import URLError
 
-from typing import Callable, Union, Any, List
+from typing import Callable, Union, Optional, Any
 
+from .types import APIVersion
 from .common import ModuleUtils
 from .logger import EmptyHandler, SensitiveFilter
 from .exceptions import APIRequestError, APINotSupported, ProcessingError
@@ -96,107 +96,6 @@ class APIObject():
         return func
 
 
-class APIVersion():
-    """Zabbix API version object.
-
-    Args:
-        apiver (str): Raw version in string format.
-    """
-
-    def __init__(self, apiver: str):
-        self.__raw = apiver
-        self.__first, self.__second, self.__third = self.__parse_version(self.__raw)
-
-    def __getitem__(self, index: int) -> Any:
-        # Get a symbol from the raw version string by index
-        # For compatibility with using Zabbix version as a string
-        return self.__raw[index]
-
-    def is_lts(self) -> bool:
-        """Check if the current version is LTS.
-
-        Returns:
-            bool: `True` if the current version is LTS.
-        """
-
-        return self.__second == 0
-
-    @property
-    def major(self) -> float:
-        """Get major version number.
-
-        Returns:
-            float: A major version number.
-        """
-
-        return float(f"{self.__first}.{self.__second}")
-
-    @property
-    def minor(self) -> int:
-        """Get minor version number.
-
-        Returns:
-            int: A minor version number.
-        """
-
-        return self.__third
-
-    def __parse_version(self, ver: str) -> List[Any]:
-        # Parse the version string into a list of integers.
-        match = re.fullmatch(r'(\d+)\.(\d+)\.(\d+)', ver)
-        if match is None:
-            raise ValueError(
-                f"Unable to parse version of Zabbix API: {ver}. " +
-                f"Default '{__max_supported__}.0' format is expected."
-            ) from None
-        return list(map(int, match.groups()))
-
-    def __str__(self) -> str:
-        return self.__raw
-
-    def __repr__(self) -> str:
-        return self.__raw
-
-    def __eq__(self, other: Union[float, str]) -> bool:
-        if isinstance(other, float):
-            return self.major == other
-        if isinstance(other, str):
-            return [self.__first, self.__second, self.__third] == self.__parse_version(other)
-        raise TypeError(
-            f"'==' not supported between instances of '{type(self).__name__}' and \
-'{type(other).__name__}', only 'float' or 'str' is expected"
-        )
-
-    def __gt__(self, other: Union[float, str]) -> bool:
-        if isinstance(other, float):
-            return self.major > other
-        if isinstance(other, str):
-            return [self.__first, self.__second, self.__third] > self.__parse_version(other)
-        raise TypeError(
-            f"'>' not supported between instances of '{type(self).__name__}' and \
-'{type(other).__name__}', only 'float' or 'str' is expected"
-        )
-
-    def __lt__(self, other: Union[float, str]) -> bool:
-        if isinstance(other, float):
-            return self.major < other
-        if isinstance(other, str):
-            return [self.__first, self.__second, self.__third] < self.__parse_version(other)
-        raise TypeError(
-            f"'<' not supported between instances of '{type(self).__name__}' and \
-'{type(other).__name__}', only 'float' or 'str' is expected"
-        )
-
-    def __ne__(self, other: Any) -> bool:
-        return not self.__eq__(other)
-
-    def __ge__(self, other: Any) -> bool:
-        return not self.__lt__(other)
-
-    def __le__(self, other: Any) -> bool:
-        return not self.__gt__(other)
-
-
 class ZabbixAPI():
     """Provide interface for working with Zabbix API.
 
@@ -217,9 +116,9 @@ class ZabbixAPI():
     __session_id = None
     __basic_cred = None
 
-    def __init__(self, url: Union[str, None] = None, token: Union[str, None] = None,
-                 user: Union[str, None] = None, password: Union[str, None] = None,
-                 http_user: Union[str, None] = None, http_password: Union[str, None] = None,
+    def __init__(self, url: Optional[str] = None, token: Optional[str] = None,
+                 user: Optional[str] = None, password: Optional[str] = None,
+                 http_user: Optional[str] = None, http_password: Optional[str] = None,
                  skip_version_check: bool = False, validate_certs: bool = True, timeout: int = 30):
 
         url = url or env.get('ZABBIX_URL') or 'http://localhost/zabbix/api_jsonrpc.php'
@@ -296,8 +195,8 @@ class ZabbixAPI():
 
         return self.api_version()
 
-    def login(self, token: Union[str, None] = None, user: Union[str, None] = None,
-              password: Union[str, None] = None) -> None:
+    def login(self, token: Optional[str] = None, user: Optional[str] = None,
+              password: Optional[str] = None) -> None:
         """Login to Zabbix API.
 
         Args:
@@ -378,7 +277,7 @@ class ZabbixAPI():
 
         return bool(refresh_resp.get('userid'))
 
-    def send_api_request(self, method: str, params: Union[dict, None] = None,
+    def send_api_request(self, method: str, params: Optional[dict] = None,
                          need_auth=True) -> dict:
         """Function for sending request to Zabbix API.
 

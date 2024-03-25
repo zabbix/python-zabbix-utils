@@ -22,12 +22,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-import json
 import socket
 import logging
 from typing import Callable, Union
 
 from .logger import EmptyHandler
+from .types import AgentResponse
 from .common import ZabbixProtocol
 from .exceptions import ProcessingError
 
@@ -35,40 +35,8 @@ log = logging.getLogger(__name__)
 log.addHandler(EmptyHandler())
 
 
-class AgentResponse:
-    """Contains response from Zabbix agent/agent2.
-
-    Args:
-        response (string): Raw response from Zabbix.
-    """
-
-    def __init__(self, response: str):
-        error_code = 'ZBX_NOTSUPPORTED'
-        self.raw = response
-        if response == error_code:
-            self.value = None
-            self.error = 'Not supported by Zabbix Agent'
-        elif response.startswith(error_code + '\0'):
-            self.value = None
-            self.error = response[len(error_code)+1:]
-        else:
-            idx = response.find('\0')
-            if idx == -1:
-                self.value = response
-            else:
-                self.value = response[:idx]
-            self.error = None
-
-    def __repr__(self) -> str:
-        return json.dumps({
-            'error': self.error,
-            'raw': self.raw,
-            'value': self.value,
-        })
-
-
 class Getter():
-    """Zabbix get implementation.
+    """Zabbix get synchronous implementation.
 
     Args:
         host (str, optional): Zabbix agent address. Defaults to `'127.0.0.1'`.
@@ -99,7 +67,7 @@ class Getter():
                 raise TypeError('Value "socket_wrapper" should be a function.')
 
     def __get_response(self, conn: socket) -> Union[str, None]:
-        result = ZabbixProtocol.parse_packet(conn, log, ProcessingError)
+        result = ZabbixProtocol.parse_sync_packet(conn, log, ProcessingError)
 
         log.debug('Received data: %s', result)
 
