@@ -26,10 +26,13 @@ import re
 import json
 import zlib
 import struct
-from typing import Match, Union
+import asyncio
+
 from textwrap import shorten
 from logging import Logger
 from socket import socket
+
+from typing import Match, Union
 
 
 class ModuleUtils():
@@ -278,5 +281,51 @@ class ZabbixProtocol():
             response_body = zlib.decompress(cls.receive_packet(conn, datalen, log))
         else:
             response_body = cls.receive_packet(conn, datalen, log)
+
+        return response_body.decode("utf-8")
+
+    @classmethod
+    async def parse_async_packet(cls, reader: asyncio.StreamReader, log: Logger, exception) -> str:
+        """Parse a received asynchronously Zabbix protocol packet.
+
+        Args:
+            reader (StreamReader): Created asyncio.StreamReader
+            log (Logger): Logger object
+            exception: Exception type
+
+        Raises:
+            exception: Depends on input exception type
+
+        Returns:
+            str: Body of the received packet
+        """
+
+        response_header = await reader.readexactly(cls.HEADER_SIZE)
+        log.debug('Zabbix response header: %s', response_header)
+
+        if (not response_header.startswith(cls.ZABBIX_PROTOCOL) or
+                len(response_header) != cls.HEADER_SIZE):
+            log.debug('Unexpected response was received from Zabbix.')
+            raise exception('Unexpected response was received from Zabbix.')
+
+        flags, datalen, reserved = struct.unpack('<BII', response_header[4:])
+
+        # 0x01 - Zabbix communications protocol
+        if not flags & 0x01:
+            raise exception(
+                'Unexcepted flags were received. '
+                'Check debug log for more information.'
+            )
+        # 0x04 - Using large packet mode
+        if flags & 0x04:
+            raise exception(
+                'A large packet flag was received. '
+                'Current module doesn\'t support large packets.'
+            )
+        # 0x02 - Using packet compression mode
+        if flags & 0x02:
+            response_body = zlib.decompress(await reader.readexactly(datalen))
+        else:
+            response_body = await reader.readexactly(datalen)
 
         return response_body.decode("utf-8")

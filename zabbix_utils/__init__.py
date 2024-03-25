@@ -22,17 +22,24 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-from .api import ZabbixAPI, APIVersion
-from .sender import Sender, ItemValue
+from .api import ZabbixAPI
+from .aioapi import AsyncZabbixAPI
+from .sender import Sender
+from .aiosender import AsyncSender
 from .getter import Getter
+from .aiogetter import AsyncGetter
+from .types import ItemValue, APIVersion
 from .exceptions import ModuleBaseException, APIRequestError, APINotSupported, ProcessingError
 
 __all__ = (
     'ZabbixAPI',
+    'AsyncZabbixAPI',
     'APIVersion',
     'Sender',
+    'AsyncSender',
     'ItemValue',
     'Getter',
+    'AsyncGetter',
     'ModuleBaseException',
     'APIRequestError',
     'APINotSupported',
