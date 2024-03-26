@@ -8,7 +8,8 @@ import sys
 import unittest
 
 sys.path.append('.')
-from zabbix_utils.sender import ItemValue, Sender, TrapperResponse, Node
+from zabbix_utils.sender import Sender
+from zabbix_utils.types import ItemValue, TrapperResponse, Node
 
 
 class IntegrationSenderTest(unittest.TestCase):
