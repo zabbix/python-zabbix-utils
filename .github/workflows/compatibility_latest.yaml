@@ -1,5 +1,5 @@
 name: zabbix_latest
-run-name: Run compatibility with the latest Zabbix version test
+run-name: Compatibility with the latest Zabbix version test
 on:
   schedule:
     - cron: "0 1 * * *"
@@ -12,7 +12,8 @@ env:
   TEST_FILE: compatibility_api_test_latest.py
 
 jobs:
-  build:
+  compatibility:
+    name: Compatibility test
     runs-on: ubuntu-latest
 
     steps:
@@ -69,17 +70,22 @@ jobs:
       - name: Install python3
         run: | 
           sudo apt-get install -y python3 python3-pip python-is-python3
-          pip install typing-extensions>=4.0.0
+          pip install -r ./requirements.txt
       - name: Wait for Zabbix API
         run: |
           python ./.github/scripts/wait_instance_zabbix.py
+      - name: Print Zabbix version
+        continue-on-error: true
+        run: |
+          grep -Po "(?<=Changes for ).*$" /tmp/zabbix-branch/ChangeLog 2>/dev/null | head -n1
       - name: Compatibility test
         continue-on-error: true
         run: |
-            python ./.github/scripts/$TEST_FILE 2>/tmp/compatibility.log >/dev/null
+          python ./.github/scripts/$TEST_FILE 2>/tmp/compatibility.log >/dev/null
       - name: Send report
         env:
           TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
           TBOT_CHAT: ${{ vars.TBOT_CHAT }}
           SUBJECT: Compatibility with Zabbix ${{ env.ZABBIX_VERSION }} FAIL
-        run: tail -n1 /tmp/compatibility.log | grep "OK" 1>/dev/null || tail /tmp/compatibility.log | python ./.github/scripts/telegram_msg.py
+        run: |
+          tail -n1 /tmp/compatibility.log | grep "OK" 1>/dev/null || tail /tmp/compatibility.log | python ./.github/scripts/telegram_msg.py

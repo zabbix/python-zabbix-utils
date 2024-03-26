@@ -1,5 +1,5 @@
 name: api
-run-name: Run Zabbix API integration test
+run-name: Zabbix API integration test
 
 on:
   push:
@@ -15,10 +15,12 @@ on:
 env:
   ZABBIX_BRANCH: master
   CONFIG_PATH: .github/configs/
-  TEST_FILE: integration_api_test.py
+  SYNC_FILE: integration_api_test.py
+  ASYNC_FILE: integration_aioapi_test.py
 
 jobs:
-  build:
+  integration:
+    name: Integration test
     runs-on: ubuntu-latest
 
     steps:
@@ -66,17 +68,30 @@ jobs:
       - name: Install python3
         run: | 
           sudo apt-get install -y python3 python3-pip python-is-python3
-          pip install typing-extensions>=4.0.0
+          pip install -r ./requirements.txt
       - name: Wait for Zabbix API
         run: |
           python ./.github/scripts/wait_instance_zabbix.py
-      - name: Integration test
+      - name: Print Zabbix version
         continue-on-error: true
         run: |
-            python ./.github/scripts/$TEST_FILE 2>/tmp/integration.log >/dev/null
+          grep -Po "(?<=Changes for ).*$" /tmp/zabbix-branch/ChangeLog 2>/dev/null | head -n1
+      - name: Integration synchronous test
+        continue-on-error: true
+        run: |
+          python ./.github/scripts/$SYNC_FILE 2>/tmp/integration_sync.log >/dev/null
+      - name: Integration asynchronous test
+        continue-on-error: true
+        run: |
+          python ./.github/scripts/$ASYNC_FILE 2>/tmp/integration_async.log >/dev/null
       - name: Send report
         env:
           TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
           TBOT_CHAT: ${{ vars.TBOT_CHAT }}
           SUBJECT: Zabbix API integration test FAIL
-        run: tail -n1 /tmp/integration.log | grep "OK" 1>/dev/null || tail /tmp/integration.log | python ./.github/scripts/telegram_msg.py | exit 1
+        run: |
+          err=0
+          tail -n1 /tmp/integration_sync.log | grep "OK" 1>/dev/null || tail /tmp/integration_sync.log | python ./.github/scripts/telegram_msg.py 2>/dev/null | err=1
+          tail -n1 /tmp/integration_async.log | grep "OK" 1>/dev/null || tail /tmp/integration_async.log | python ./.github/scripts/telegram_msg.py 2>/dev/null | err=1
+          if [ "$err" = 1 ]; then exit 1; fi
+

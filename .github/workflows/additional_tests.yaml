@@ -1,5 +1,5 @@
 name: additional_tests
-run-name: Run additional tests for API features
+run-name: Additional tests for API features
 
 on:
   push:
@@ -14,7 +14,8 @@ env:
   TEST_FILE: additional_api_tests.py
 
 jobs:
-  build:
+  additional-tests:
+    name: Additional tests
     runs-on: ubuntu-latest
 
     steps:
@@ -73,15 +74,17 @@ jobs:
       - name: Install python3
         run: | 
           sudo apt-get install -y python3 python3-pip python-is-python3
-          pip install typing-extensions>=4.0.0
+          pip install -r ./requirements.txt
       - name: Additional tests
         continue-on-error: true
         run: |
-            sleep 5
-            python ./.github/scripts/$TEST_FILE 2>/tmp/additional.log >/dev/null
+          sleep 5
+          python ./.github/scripts/$TEST_FILE 2>/tmp/additional.log >/dev/null
       - name: Send report
         env:
           TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
           TBOT_CHAT: ${{ vars.TBOT_CHAT }}
-          SUBJECT: Zabbix API integration test FAIL
-        run: tail -n1 /tmp/additional.log | grep "OK" 1>/dev/null || tail /tmp/additional.log | python ./.github/scripts/telegram_msg.py | exit 1
+          SUBJECT: Zabbix API additional tests FAIL
+        run: |
+          tail -n1 /tmp/additional.log | grep "OK" 1>/dev/null || tail /tmp/additional.log | python ./.github/scripts/telegram_msg.py | exit 1
+
