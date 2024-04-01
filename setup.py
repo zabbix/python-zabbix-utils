@@ -45,7 +45,7 @@ setuptools.setup(
     test_suite='tests',
     packages=["zabbix_utils"],
     tests_require=["unittest"],
-    install_requires=[],
+    install_requires=["aiohttp[speedups]>=3.8.0"],
     python_requires='>=3.8',
     project_urls={
         'Zabbix': 'https://www.zabbix.com/documentation/current',
