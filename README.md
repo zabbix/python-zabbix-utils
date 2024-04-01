@@ -136,7 +136,7 @@ if response:
     print("Template imported successfully")
 ```
 
-> Please, refer to the [Zabbix API Documentation](https://www.zabbix.com/documentation/current/manual/api/reference) and the [using examples](https://github.com/zabbix/python-zabbix-utils/tree/main/examples/api) for more information.
+> Please, refer to the [Zabbix API Documentation](https://www.zabbix.com/documentation/current/manual/api/reference) and the [using examples](https://github.com/zabbix/python-zabbix-utils/tree/main/examples/api/synchronous) for more information.
 
 ##### To work via Zabbix sender protocol
 
@@ -197,7 +197,7 @@ print(response.details)
 
 In such case, the value will be sent to the first available node of each cluster.
 
-> Please, refer to the [Zabbix sender protocol](https://www.zabbix.com/documentation/current/manual/appendix/protocols/zabbix_sender) and the [using examples](https://github.com/zabbix/python-zabbix-utils/tree/main/examples/sender) for more information.
+> Please, refer to the [Zabbix sender protocol](https://www.zabbix.com/documentation/current/manual/appendix/protocols/zabbix_sender) and the [using examples](https://github.com/zabbix/python-zabbix-utils/tree/main/examples/sender/synchronous) for more information.
 
 ##### To work via Zabbix get protocol
 
@@ -213,7 +213,7 @@ print(resp.value)
 # Linux test_server 5.15.0-3.60.5.1.el9uek.x86_64
 ```
 
-> Please, refer to the [Zabbix agent protocol](https://www.zabbix.com/documentation/current/manual/appendix/protocols/zabbix_agent) and the [using examples](https://github.com/zabbix/python-zabbix-utils/tree/main/examples/get) for more information.
+> Please, refer to the [Zabbix agent protocol](https://www.zabbix.com/documentation/current/manual/appendix/protocols/zabbix_agent) and the [using examples](https://github.com/zabbix/python-zabbix-utils/tree/main/examples/get/synchronous) for more information.
 
 ### Enabling debug log
 
