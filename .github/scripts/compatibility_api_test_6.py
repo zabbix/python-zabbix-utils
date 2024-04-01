@@ -6,7 +6,6 @@
 
 import sys
 import time
-import asyncio
 import unittest
 
 sys.path.append('.')
@@ -19,7 +18,7 @@ from zabbix_utils.aiogetter import AsyncGetter
 from zabbix_utils.exceptions import APIRequestError
 from zabbix_utils.types import AgentResponse, ItemValue, TrapperResponse, APIVersion
 
-ZABBIX_URL = 'localhost'
+ZABBIX_URL = '127.0.0.1'
 ZABBIX_USER = 'Admin'
 ZABBIX_PASSWORD = 'zabbix'
 
@@ -180,7 +179,7 @@ class CompatibilitySenderTest(unittest.TestCase):
                 value_type=3
             )['itemids'][0]
 
-            time.sleep(2)
+        time.sleep(2)
 
         self.assertIsNotNone(hostid, "Creating test item was going wrong")
 
@@ -397,14 +396,14 @@ class CompatibilityAsyncSenderTest(unittest.IsolatedAsyncioTestCase):
             )
             itemid = created_item['itemids'][0]
 
-            asyncio.sleep(2)
-
         self.assertIsNotNone(hostid, "Creating test item was going wrong")
 
         await zapi.logout()
 
     async def test_send_values(self):
         """Tests sending item values"""
+
+        time.sleep(2)
 
         items = [
             ItemValue(self.hostname, self.itemkey, 10),
