@@ -107,7 +107,7 @@ class AsyncZabbixAPI():
         http_password (str, optional): Basic Authentication password. Defaults to `None`.
         skip_version_check (bool, optional): Skip version compatibility check. Defaults to `False`.
         validate_certs (bool, optional): Specifying certificate validation. Defaults to `True`.
-        client_session (Optional[ClientSession], optional): Client's session. Defaults to `None`.
+        client_session (aiohttp.ClientSession, optional): Client's session. Defaults to `None`.
         timeout (int, optional): Connection timeout to Zabbix API. Defaults to `30`.
     """
 
@@ -130,7 +130,7 @@ class AsyncZabbixAPI():
 
         if client_session is None:
             client_params["connector"] = aiohttp.TCPConnector(
-                verify_ssl=self.validate_certs
+                ssl=self.validate_certs
             )
             if http_user and http_password:
                 client_params["auth"] = aiohttp.BasicAuth(
