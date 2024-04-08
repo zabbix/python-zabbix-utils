@@ -79,7 +79,7 @@ class APIObject():
 
         async def func(*args: Any, **kwargs: Any) -> Any:
             if args and kwargs:
-                raise TypeError("Only args or kwargs should be used.")
+                await self.__exception(TypeError("Only args or kwargs should be used."))
 
             # Support '_' suffix to avoid conflicts with python keywords
             method = removesuffix(self.object, '_') + "." + removesuffix(name, '_')
@@ -114,6 +114,7 @@ class AsyncZabbixAPI():
     __version = None
     __use_token = False
     __session_id = None
+    __internal_client = None
 
     def __init__(self, url: Optional[str] = None,
                  http_user: Optional[str] = None, http_password: Optional[str] = None,
@@ -137,7 +138,8 @@ class AsyncZabbixAPI():
                     login=http_user,
                     password=http_password
                 )
-            self.client_session = aiohttp.ClientSession(**client_params)
+            self.__internal_client = aiohttp.ClientSession(**client_params)
+            self.client_session = self.__internal_client
         else:
             if http_user and http_password:
                 raise AttributeError(
@@ -164,6 +166,14 @@ class AsyncZabbixAPI():
 
     async def __aexit__(self, *args) -> None:
         await self.logout()
+
+    async def __close_session(self) -> None:
+        if self.__internal_client:
+            await self.__internal_client.close()
+
+    async def __exception(self, exc) -> None:
+        await self.__close_session()
+        raise exc from exc
 
     def api_version(self) -> APIVersion:
         """Return object of Zabbix API version.
@@ -204,21 +214,22 @@ class AsyncZabbixAPI():
 
         if token:
             if self.version < 5.4:
-                raise APINotSupported(
+                await self.__exception(APINotSupported(
                     message="Token usage",
                     version=self.version
-                )
+                ))
             if user or password:
-                raise ProcessingError(
-                    "Token cannot be used with username and password")
+                await self.__exception(
+                    ProcessingError("Token cannot be used with username and password")
+                )
             self.__use_token = True
             self.__session_id = token
             return
 
         if not user:
-            raise ProcessingError("Username is missing")
+            await self.__exception(ProcessingError("Username is missing"))
         if not password:
-            raise ProcessingError("User password is missing")
+            await self.__exception(ProcessingError("User password is missing"))
 
         if self.version < 5.4:
             user_cred = {
@@ -246,16 +257,15 @@ class AsyncZabbixAPI():
             if self.__use_token:
                 self.__session_id = None
                 self.__use_token = False
+                await self.__close_session()
                 return
 
             log.debug("Logout from Zabbix API")
             await self.user.logout()
             self.__session_id = None
+            await self.__close_session()
         else:
             log.debug("You're not logged in Zabbix API")
-
-        if self.client_session:
-            await self.client_session.close()
 
     async def check_auth(self) -> bool:
         """Check authentication status in Zabbix API.
@@ -347,7 +357,10 @@ class AsyncZabbixAPI():
             dict: Dictionary with Zabbix API response.
         """
 
-        request_json, headers = self.__prepare_request(method, params, need_auth)
+        try:
+            request_json, headers = self.__prepare_request(method, params, need_auth)
+        except ProcessingError as err:
+            await self.__exception(err)
 
         resp = await self.client_session.post(
             self.url,
@@ -360,11 +373,14 @@ class AsyncZabbixAPI():
         try:
             resp_json = await resp.json()
         except ContentTypeError as err:
-            raise ProcessingError(f"Unable to connect to {self.url}:", err) from None
+            await self.__exception(ProcessingError(f"Unable to connect to {self.url}:", err))
         except ValueError as err:
-            raise ProcessingError("Unable to parse json:", err) from None
+            await self.__exception(ProcessingError("Unable to parse json:", err))
 
-        return self.__check_response(method, resp_json)
+        try:
+            return self.__check_response(method, resp_json)
+        except APIRequestError as err:
+            await self.__exception(err)
 
     def send_sync_request(self, method: str, params: Optional[dict] = None,
                           need_auth=True) -> dict:
