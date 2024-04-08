@@ -10,23 +10,23 @@ from zabbix_utils import Sender
 ZABBIX_SERVER = "zabbix-server.example.com"
 ZABBIX_PORT = 10051
 
-# Paths to certificate and key files
-CA_PATH = 'path/to/cabundle.pem'
-CERT_PATH = 'path/to/agent.crt'
-KEY_PATH = 'path/to/agent.key'
-
 
 # Define a function for wrapping the socket with TLS
-def tls_wrapper(sock, *args, **kwargs):
+def tls_wrapper(sock, config):
+
+    # Try to get paths to certificate and key files
+    ca_path = config.get('tlscafile')
+    cert_path = config.get('tlscertfile')
+    key_path = config.get('tlskeyfile')
 
     # Create an SSL context for TLS client
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 
     # Load the client certificate and private key
-    context.load_cert_chain(CERT_PATH, keyfile=KEY_PATH)
+    context.load_cert_chain(cert_path, keyfile=key_path)
 
     # Load the certificate authority bundle file
-    context.load_verify_locations(cafile=CA_PATH)
+    context.load_verify_locations(cafile=ca_path)
 
     # Disable hostname verification
     context.check_hostname = False
