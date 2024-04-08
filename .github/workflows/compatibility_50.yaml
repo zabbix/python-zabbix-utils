@@ -25,7 +25,7 @@ jobs:
         run: |
           curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
           echo "deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
-          sudo apt update && sudo apt install -y git sudo gcc make automake pkg-config postgresql-13 libpostgresql-ocaml-dev libxml2-dev libpcre3-dev libevent-dev apache2 libapache2-mod-php php8.1-pgsql php8.1-bcmath php8.1-xml php8.1-gd php8.1-ldap php8.1-mbstring libzip-dev      
+          sudo apt update && sudo apt install -y git sudo gcc make automake pkg-config postgresql-13 libpostgresql-ocaml-dev libxml2-dev libpcre3-dev libevent-dev apache2 libapache2-mod-php php8.1-pgsql php8.1-bcmath php8.1-xml php8.1-gd php8.1-ldap php8.1-mbstring libzip-dev
       - name: Build from sources
         run: |
           WORKDIR=$(pwd)
@@ -64,18 +64,18 @@ jobs:
           sudo -u postgres createdb -O zabbix -E Unicode -T template0 zabbix
           cat schema.sql | sudo -u zabbix psql zabbix
           cat images.sql | sudo -u zabbix psql zabbix
-          cat data.sql | sudo -u zabbix psql zabbix      
+          cat data.sql | sudo -u zabbix psql zabbix
           sudo apache2ctl start
       - name: Start Zabbix server
         run: |
-          cd /tmp/zabbix-branch 
+          cd /tmp/zabbix-branch
           sudo ./src/zabbix_server/zabbix_server -c ./conf/zabbix_server.conf
       - name: Start Zabbix agent
         run: |
-          cd /tmp/zabbix-branch 
+          cd /tmp/zabbix-branch
           sudo ./src/zabbix_agent/zabbix_agentd -c ./conf/zabbix_agentd.conf
       - name: Install python3
-        run: | 
+        run: |
           sudo apt-get install -y python3 python3-pip python-is-python3
           pip install -r ./requirements.txt
       - name: Wait for Zabbix API
@@ -91,4 +91,4 @@ jobs:
           TBOT_CHAT: ${{ vars.TBOT_CHAT }}
           SUBJECT: Compatibility with Zabbix ${{ env.ZABBIX_VERSION }} FAIL
         run: |
-          tail -n1 /tmp/compatibility.log | grep "OK" 1>/dev/null || tail /tmp/compatibility.log | python ./.github/scripts/telegram_msg.py
+          tail -n1 /tmp/compatibility.log | grep "OK" 1>/dev/null || tail /tmp/compatibility.log | python ./.github/scripts/telegram_msg.py | exit 1

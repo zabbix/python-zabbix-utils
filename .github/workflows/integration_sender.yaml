@@ -40,7 +40,7 @@ jobs:
         run: |
           sudo zabbix_proxy -c /etc/zabbix/zabbix_proxy.conf
       - name: Install python3
-        run: | 
+        run: |
           sudo apt-get install -y python3 python3-pip python-is-python3
           pip install -r ./requirements.txt
       - name: Integration synchronous test

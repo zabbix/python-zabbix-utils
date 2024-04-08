@@ -66,13 +66,13 @@ jobs:
           sudo -u postgres createdb -O zabbix -E Unicode -T template0 zabbix
           cat schema.sql | sudo -u zabbix psql zabbix
           cat images.sql | sudo -u zabbix psql zabbix
-          cat data.sql | sudo -u zabbix psql zabbix 
+          cat data.sql | sudo -u zabbix psql zabbix
       - name: Start Apache & Nginx
         run: |
           sudo apache2ctl start
           sudo nginx -g "daemon on; master_process on;"
       - name: Install python3
-        run: | 
+        run: |
           sudo apt-get install -y python3 python3-pip python-is-python3
           pip install -r ./requirements.txt
       - name: Additional tests
