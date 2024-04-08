@@ -15,15 +15,15 @@ except ImportError:
 
 
 # PSK wrapper function for SSL connection
-def psk_wrapper(sock, tls):
+def psk_wrapper(sock, config):
     psk = None
-    psk_identity = tls.get('tlspskidentity')
-    psk_file = tls.get('tlspskfile')
+    psk_identity = config.get('tlspskidentity').encode('utf-8')
+    psk_file = config.get('tlspskfile')
 
     # Read PSK from file if specified
     if psk_file:
         with open(psk_file, encoding='utf-8') as f:
-            psk = f.read()
+            psk = bytes.fromhex(f.read())
 
     # Check if both PSK and PSK identity are available
     if psk and psk_identity:

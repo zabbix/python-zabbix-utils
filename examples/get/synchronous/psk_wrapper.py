@@ -17,7 +17,7 @@ except ImportError:
 # PSK wrapper function for SSL connection
 def psk_wrapper(sock):
     # Pre-Shared Key (PSK) and PSK Identity
-    psk = b'608b0a0049d41fdb35a824ef0a227f24e5099c60aa935e803370a961c937d6f7'
+    psk = bytes.fromhex('608b0a0049d41fdb35a824ef0a227f24e5099c60aa935e803370a961c937d6f7')
     psk_identity = b'PSKID'
 
     # Wrap the socket using sslpsk to establish an SSL connection with PSK
