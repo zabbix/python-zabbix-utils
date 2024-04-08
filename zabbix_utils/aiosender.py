@@ -156,7 +156,7 @@ Defaults to `None`.
                 }
 
                 if self.source_ip:
-                    connection_params['local_addr'] = self.source_ip
+                    connection_params['local_addr'] = (self.source_ip, 0)
 
                 if self.ssl_context is not None:
                     connection_params['ssl'] = self.ssl_context(self.tls)
