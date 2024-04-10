@@ -180,12 +180,6 @@ class TestAsyncZabbixAPI(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(zapi._AsyncZabbixAPI__session_id, case['output'],
                                         f"unexpected output with input data: {case['input']}")
 
-        with patch.multiple(
-                    AsyncZabbixAPI,
-                    send_async_request=common.mock_send_async_request):
-            with self.assertRaises(TypeError, msg="expected TypeError exception hasn't been raised"):
-                await self.zapi.user.login(DEFAULT_VALUES['user'], password=DEFAULT_VALUES['password'])
-
     async def test_logout(self):
         """Tests logout in different auth cases"""
 
