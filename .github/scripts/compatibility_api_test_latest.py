@@ -317,7 +317,7 @@ class CompatibilityAsyncAPITest(unittest.IsolatedAsyncioTestCase):
 
         self.assertIsNone(self.zapi._AsyncZabbixAPI__session_id, "Logout was going wrong")
 
-        with self.assertRaises(APIRequestError,
+        with self.assertRaises(RuntimeError,
                                msg="Request user.checkAuthentication after logout was going wrong"):
             resp = await self.zapi.user.checkAuthentication(sessionid=(self.zapi._AsyncZabbixAPI__session_id or ''))
 
