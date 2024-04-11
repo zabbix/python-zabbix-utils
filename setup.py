@@ -45,7 +45,10 @@ setuptools.setup(
     test_suite='tests',
     packages=["zabbix_utils"],
     tests_require=["unittest"],
-    install_requires=["aiohttp[speedups]>=3.8.0"],
+    install_requires=[],
+    extras_require={
+        "async": ["aiohttp>=3,<4"],
+    },
     python_requires='>=3.8',
     project_urls={
         'Zabbix': 'https://www.zabbix.com/documentation/current',
@@ -57,6 +60,11 @@ setuptools.setup(
         "Development Status :: 5 - Production/Stable",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Topic :: System :: Monitoring",
