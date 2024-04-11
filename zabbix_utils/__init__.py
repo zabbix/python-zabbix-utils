@@ -23,13 +23,21 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 from .api import ZabbixAPI
-from .aioapi import AsyncZabbixAPI
 from .sender import Sender
-from .aiosender import AsyncSender
 from .getter import Getter
-from .aiogetter import AsyncGetter
 from .types import ItemValue, APIVersion
 from .exceptions import ModuleBaseException, APIRequestError, APINotSupported, ProcessingError
+
+from .aiosender import AsyncSender
+from .aiogetter import AsyncGetter
+try:
+    __import__('aiohttp')
+except ModuleNotFoundError:
+    class AsyncZabbixAPI():
+        def __init__(self, *args, **kwargs):
+            raise ModuleNotFoundError("No module named 'aiohttp'")
+else:
+    from .aioapi import AsyncZabbixAPI
 
 __all__ = (
     'ZabbixAPI',
