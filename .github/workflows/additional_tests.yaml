@@ -1,5 +1,5 @@
 name: additional_tests
-run-name: Run additional tests for API features
+run-name: Additional tests for API features
 
 on:
   push:
@@ -14,7 +14,50 @@ env:
   TEST_FILE: additional_api_tests.py
 
 jobs:
-  build:
+  importing-tests:
+    name: Importing tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Python
+        run: |
+          sudo apt update && sudo apt-get install -y python3 python3-pip python-is-python3
+      - name: Prepare environment
+        run: |
+          touch /tmp/importing.log
+      - name: Check import of sync without requirements
+        continue-on-error: true
+        env:
+          TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
+          TBOT_CHAT: ${{ vars.TBOT_CHAT }}
+          SUBJECT: Importing test without requirements FAIL
+        run: |
+          bash ./.github/scripts/library_import_tests.sh "ZabbixAPI" "Unable to connect to" > /tmp/importing.log
+      - name: Check import of async without requirements
+        continue-on-error: true
+        env:
+          TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
+          TBOT_CHAT: ${{ vars.TBOT_CHAT }}
+          SUBJECT: Importing test without requirements FAIL
+        run: |
+          bash ./.github/scripts/library_import_tests.sh "AsyncZabbixAPI" "ModuleNotFoundError:" > /tmp/importing.log
+      - name: Install requirements
+        run: |
+          pip install -r ./requirements.txt
+      - name: Check import of async with requirements
+        continue-on-error: true
+        env:
+          TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
+          TBOT_CHAT: ${{ vars.TBOT_CHAT }}
+          SUBJECT: Importing tests with requirements FAIL
+        run: |
+          bash ./.github/scripts/library_import_tests.sh "AsyncZabbixAPI" "aiohttp.client.ClientSession" > /tmp/importing.log
+      - name: Raise an exception
+        run: |
+          test $(cat /tmp/importing.log | wc -l) -eq 0 || exit 1
+  additional-tests:
+    name: Additional tests
     runs-on: ubuntu-latest
 
     steps:
@@ -65,23 +108,24 @@ jobs:
           sudo -u postgres createdb -O zabbix -E Unicode -T template0 zabbix
           cat schema.sql | sudo -u zabbix psql zabbix
           cat images.sql | sudo -u zabbix psql zabbix
-          cat data.sql | sudo -u zabbix psql zabbix 
+          cat data.sql | sudo -u zabbix psql zabbix
       - name: Start Apache & Nginx
         run: |
           sudo apache2ctl start
           sudo nginx -g "daemon on; master_process on;"
       - name: Install python3
-        run: | 
+        run: |
           sudo apt-get install -y python3 python3-pip python-is-python3
-          pip install typing-extensions>=4.0.0
+          pip install -r ./requirements.txt
       - name: Additional tests
         continue-on-error: true
         run: |
-            sleep 5
-            python ./.github/scripts/$TEST_FILE 2>/tmp/additional.log >/dev/null
+          sleep 5
+          python ./.github/scripts/$TEST_FILE 2>/tmp/additional.log >/dev/null
       - name: Send report
         env:
           TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
           TBOT_CHAT: ${{ vars.TBOT_CHAT }}
-          SUBJECT: Zabbix API integration test FAIL
-        run: tail -n1 /tmp/additional.log | grep "OK" 1>/dev/null || tail /tmp/additional.log | python ./.github/scripts/telegram_msg.py | exit 1
+          SUBJECT: Zabbix API additional tests FAIL
+        run: |
+          tail -n1 /tmp/additional.log | grep "OK" 1>/dev/null || tail /tmp/additional.log | python ./.github/scripts/telegram_msg.py | exit 1

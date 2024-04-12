@@ -26,16 +26,13 @@ import json
 import socket
 import unittest
 
+from tests import common
 from zabbix_utils import Getter
 from zabbix_utils import ProcessingError
-from zabbix_utils.common import ZabbixProtocol
 
 
-DEFAULT_VALUES = {
-    'host': 'localhost',
-    'port': 10050,
-    'source_ip': '192.168.1.1'
-}
+DEFAULT_VALUES = common.GETTER_DEFAULTS
+
 
 class TestGetter(unittest.TestCase):
     """Test cases for Getter object"""
@@ -45,21 +42,21 @@ class TestGetter(unittest.TestCase):
 
         test_cases = [
             {
-                'input': {'source_ip': '10.10.0.0', 'timeout': 20},
+                'input': {'source_ip': DEFAULT_VALUES['source_ip'], 'timeout': 20},
                 'output': json.dumps({
-                    "host": "127.0.0.1", "port": 10050, "timeout": 20, "use_ipv6": False, "source_ip": "10.10.0.0", "socket_wrapper": None
+                    "host": "127.0.0.1", "port": DEFAULT_VALUES['port'], "timeout": 20, "use_ipv6": False, "source_ip": DEFAULT_VALUES['source_ip'], "socket_wrapper": None
                 })
             },
             {
-                'input': {'host':'localhost', 'use_ipv6': True},
+                'input': {'host':DEFAULT_VALUES['host']},
                 'output': json.dumps({
-                    "host": "localhost", "port": 10050, "timeout": 10, "use_ipv6": True, "source_ip": None, "socket_wrapper": None
+                    "host": DEFAULT_VALUES['host'], "port": DEFAULT_VALUES['port'], "timeout": 10, "use_ipv6": False, "source_ip": None, "socket_wrapper": None
                 })
             },
             {
-                'input': {'host':'localhost', 'port': 10150},
+                'input': {'host':DEFAULT_VALUES['host'], 'port': 10150},
                 'output': json.dumps({
-                    "host": "localhost", "port": 10150, "timeout": 10, "use_ipv6": False, "source_ip": None, "socket_wrapper": None
+                    "host": DEFAULT_VALUES['host'], "port": 10150, "timeout": 10, "use_ipv6": False, "source_ip": None, "socket_wrapper": None
                 })
             }
         ]
@@ -70,7 +67,7 @@ class TestGetter(unittest.TestCase):
 
             self.assertEqual(json.dumps(agent.__dict__), case['output'],
                              f"unexpected output with input data: {case['input']}")
-            
+
             with self.assertRaises(TypeError,
                                    msg="expected TypeError exception hasn't been raised"):
                 agent = Getter(socket_wrapper='wrapper', **case['input'])
@@ -90,21 +87,10 @@ class TestGetter(unittest.TestCase):
             }
         ]
 
-        class ConnectTest():
-            def __init__(self, input):
-                self.input = input
-                self.stream = input
-            def recv(self, len):
-                resp = self.stream[0:len]
-                self.stream = self.stream[len:]
-                return resp
-            def close(self):
-                raise socket.error("test error")
-
         for case in test_cases:
 
             getter = Getter()
-            conn = ConnectTest(case['input'])        
+            conn = common.MockConnector(case['input'])        
 
             self.assertEqual(getter._Getter__get_response(conn), case['output'],
                              f"unexpected output with input data: {case['input']}")
@@ -112,55 +98,87 @@ class TestGetter(unittest.TestCase):
         with self.assertRaises(ProcessingError,
                                msg="expected ProcessingError exception hasn't been raised"):
             getter = Getter()
-            conn = ConnectTest(b'test')
+            conn = common.MockConnector(b'test')
             getter._Getter__get_response(conn)
 
         with self.assertRaises(ProcessingError,
                                msg="expected ProcessingError exception hasn't been raised"):
             getter = Getter()
-            conn = ConnectTest(b'ZBXD\x04\x04\x00\x00\x00\x00\x00\x00\x00test')
+            conn = common.MockConnector(b'ZBXD\x04\x04\x00\x00\x00\x00\x00\x00\x00test')
             getter._Getter__get_response(conn)
 
         with self.assertRaises(ProcessingError,
                                msg="expected ProcessingError exception hasn't been raised"):
             getter = Getter()
-            conn = ConnectTest(b'ZBXD\x00\x04\x00\x00\x00\x00\x00\x00\x00test')
+            conn = common.MockConnector(b'ZBXD\x00\x04\x00\x00\x00\x00\x00\x00\x00test')
             getter._Getter__get_response(conn)
 
+    def test_get(self):
+        """Tests get() method in different cases"""
 
-class TestZabbixProtocol(unittest.TestCase):
-    """Test cases for ZabbixProtocol object"""
-
-    def test_create_packet(self):
-        """Tests create_packet method in different cases"""
-
-        class Logger():
-            def debug(self, *args, **kwargs):
-                pass
+        output = 'test_response'
+        response = b'ZBXD\x01\r\x00\x00\x00\x00\x00\x00\x00' + output.encode('utf-8')
 
         test_cases = [
             {
-                'input': {'payload':'test', 'log':Logger()},
-                'output': b'ZBXD\x01\x04\x00\x00\x00\x00\x00\x00\x00test'
+                'connection': {'input_stream': response},
+                'input': {'use_ipv6': False},
+                'output': output,
+                'raised': False
             },
             {
-                'input': {'payload':'test_creating_packet', 'log':Logger()},
-                'output': b'ZBXD\x01\x14\x00\x00\x00\x00\x00\x00\x00test_creating_packet'
+                'connection': {'input_stream': response},
+                'input': {'use_ipv6': True},
+                'output': output,
+                'raised': False
             },
             {
-                'input': {'payload':'test_compression_flag', 'log':Logger()},
-                'output': b'ZBXD\x01\x15\x00\x00\x00\x00\x00\x00\x00test_compression_flag'
+                'connection': {'input_stream': response},
+                'input': {'source_ip': '127.0.0.1'},
+                'output': output,
+                'raised': False
             },
             {
-                'input': {'payload':'glāžšķūņu rūķīši', 'log':Logger()},
-                'output': b'ZBXD\x01\x1a\x00\x00\x00\x00\x00\x00\x00gl\xc4\x81\xc5\xbe\xc5\xa1\xc4\xb7\xc5\xab\xc5\x86u r\xc5\xab\xc4\xb7\xc4\xab\xc5\xa1i'
+                'connection': {'input_stream': response},
+                'input': {'socket_wrapper': common.socket_wrapper},
+                'output': output,
+                'raised': False
+            },
+            {
+                'connection': {'input_stream': response, 'exception': socket.error},
+                'input': {},
+                'output': output,
+                'raised': True
+            },
+            {
+                'connection': {'input_stream': response, 'exception': socket.gaierror},
+                'input': {},
+                'output': output,
+                'raised': True
+            },
+            {
+                'connection': {'input_stream': response, 'exception': socket.timeout},
+                'input': {},
+                'output': output,
+                'raised': True
             }
         ]
 
         for case in test_cases:
-            resp = ZabbixProtocol.create_packet(**case['input'])
-            self.assertEqual(resp, case['output'],
-                             f"unexpected output with input data: {case['input']}")
+            with unittest.mock.patch('socket.socket') as mock_socket:
+                test_connector = common.MockConnector(**case['connection'])
+                mock_socket.return_value.recv = test_connector.recv
+                mock_socket.return_value.sendall = test_connector.sendall
+                getter = Getter(**case['input'])
+                
+                try:
+                    resp = getter.get('system.uname')
+                except case['connection'].get('exception', Exception):
+                    if not case['raised']:
+                        self.fail(f"raised unexpected Exception with input data: {case['input']}")
+                else:
+                    self.assertEqual(resp.value, case['output'],
+                                    f"unexpected output with input data: {case['input']}")
 
 
 if __name__ == '__main__':

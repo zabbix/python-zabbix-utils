@@ -7,24 +7,28 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-linux:
+  check-release:
+    name: Check Zabbix release
     runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v4
     - name: Prepare environment
       run: |
-          sudo apt-get install -y python3 python3-pip python-is-python3
-          pip install typing-extensions>=4.0.0
+        sudo apt-get install -y python3 python3-pip python-is-python3
+        pip install -r ./requirements.txt
     - name: Check new Zabbix release
       env:
         BRANCHES_URL: ${{ vars.BRANCHES_URL }}
         LIBREPO_URL: ${{ vars.LIBREPO_URL }}
         MANUAL_REPO: ${{ vars.MANUAL_REPO }}
       run: |
-          python ./.github/scripts/check_new_zabbx_release.py 2>/tmp/check_release.log || echo
+        python ./.github/scripts/check_new_zabbx_release.py 2>/tmp/check_release.log || echo
     - name: Send report
       env:
         TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
         TBOT_CHAT: ${{ vars.TBOT_CHAT }}
+        TBOT_FORMAT: html
         SUBJECT: zabbix_utils repo requires update due new Zabbix release
-      run: tail /tmp/check_release.log | python ./.github/scripts/telegram_msg.py
+      run: |
+        tail /tmp/check_release.log | python ./.github/scripts/telegram_msg.py

@@ -22,17 +22,32 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-from .api import ZabbixAPI, APIVersion
-from .sender import Sender, ItemValue
+from .api import ZabbixAPI
+from .sender import Sender
 from .getter import Getter
+from .types import ItemValue, APIVersion
 from .exceptions import ModuleBaseException, APIRequestError, APINotSupported, ProcessingError
+
+from .aiosender import AsyncSender
+from .aiogetter import AsyncGetter
+try:
+    __import__('aiohttp')
+except ModuleNotFoundError:
+    class AsyncZabbixAPI():
+        def __init__(self, *args, **kwargs):
+            raise ModuleNotFoundError("No module named 'aiohttp'")
+else:
+    from .aioapi import AsyncZabbixAPI
 
 __all__ = (
     'ZabbixAPI',
+    'AsyncZabbixAPI',
     'APIVersion',
     'Sender',
+    'AsyncSender',
     'ItemValue',
     'Getter',
+    'AsyncGetter',
     'ModuleBaseException',
     'APIRequestError',
     'APINotSupported',

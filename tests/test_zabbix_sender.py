@@ -28,38 +28,16 @@ import unittest
 import configparser
 from unittest.mock import patch
 
-from zabbix_utils.sender import Sender, Cluster, ItemValue
+from tests import common
+from zabbix_utils.sender import Sender
+from zabbix_utils.types import ItemValue, TrapperResponse
 from zabbix_utils.exceptions import ProcessingError
 from zabbix_utils.common import ZabbixProtocol
 
 
-DEFAULT_VALUES = {
-    'server': 'localhost',
-    'port': 10051,
-    'source_ip': '192.168.1.1',
-    'clusters': [
-        ['zabbix.cluster.node1','zabbix.cluster.node2:20051'],
-        ['zabbix.cluster2.node1','zabbix.cluster2.node2'],
-        ['zabbix.domain']
-    ]
-}
+DEFAULT_VALUES = common.SENDER_DEFAULTS
+ZABBIX_CONFIG = common.ZABBIX_CONFIG
 
-ZABBIX_CONFIG = [
-    f"""[root]
-ServerActive=zabbix.cluster.node1;zabbix.cluster.node2:20051,zabbix.cluster2.node1;zabbix.cluster2.node2,zabbix.domain
-Server={DEFAULT_VALUES['server']}
-SourceIP={DEFAULT_VALUES['source_ip']}
-TLSConnect=unencrypted
-TLSAccept=unencrypted
-""",
-    f"""[root]
-Server={DEFAULT_VALUES['server']}
-SourceIP={DEFAULT_VALUES['source_ip']}
-""",
-    f"""[root]
-SourceIP={DEFAULT_VALUES['source_ip']}
-"""
-]
 
 class TestSender(unittest.TestCase):
     """Test cases for Sender object"""
@@ -69,17 +47,17 @@ class TestSender(unittest.TestCase):
 
         test_cases = [
             {
-                'input': {'source_ip': '10.10.0.0'},
-                'clusters': json.dumps([[["127.0.0.1", 10051]]]),
-                'source_ip': '10.10.0.0'
+                'input': {'source_ip': DEFAULT_VALUES['source_ip']},
+                'clusters': json.dumps([[["127.0.0.1", DEFAULT_VALUES['port']]]]),
+                'source_ip': DEFAULT_VALUES['source_ip']
             },
             {
-                'input': {'server':'localhost', 'port': 10151},
-                'clusters': json.dumps([[["localhost", 10151]]]),
+                'input': {'server': DEFAULT_VALUES['server'], 'port': 10151},
+                'clusters': json.dumps([[[DEFAULT_VALUES['server'], 10151]]]),
                 'source_ip': None
             },
             {
-                'input': {'server':'localhost', 'port': 10151, 'clusters': DEFAULT_VALUES['clusters']},
+                'input': {'server': DEFAULT_VALUES['server'], 'port': 10151, 'clusters': DEFAULT_VALUES['clusters']},
                 'clusters': json.dumps([
                     [["zabbix.cluster.node1", 10051], ["zabbix.cluster.node2", 20051]],
                     [["zabbix.cluster2.node1", 10051], ["zabbix.cluster2.node2", 10051]],
@@ -98,7 +76,7 @@ class TestSender(unittest.TestCase):
                 'source_ip': None
             },
             {
-                'input': {'server':'localhost', 'port': 10151, 'use_config': True, 'config_path': ZABBIX_CONFIG[0]},
+                'input': {'server': DEFAULT_VALUES['server'], 'port': 10151, 'use_config': True, 'config_path': ZABBIX_CONFIG[0]},
                 'clusters': json.dumps([
                     [["zabbix.cluster.node1", 10051], ["zabbix.cluster.node2", 20051]],
                     [["zabbix.cluster2.node1", 10051], ["zabbix.cluster2.node2", 10051]],
@@ -170,21 +148,10 @@ class TestSender(unittest.TestCase):
             }
         ]
 
-        class ConnectTest():
-            def __init__(self, input):
-                self.input = input
-                self.stream = input
-            def recv(self, len):
-                resp = self.stream[0:len]
-                self.stream = self.stream[len:]
-                return resp
-            def close(self):
-                raise socket.error("test error")
-
         for case in test_cases:
 
             sender = Sender()
-            conn = ConnectTest(case['input'])
+            conn = common.MockConnector(case['input'])
 
             self.assertEqual(json.dumps(sender._Sender__get_response(conn)), case['output'],
                              f"unexpected output with input data: {case['input']}")
@@ -192,31 +159,31 @@ class TestSender(unittest.TestCase):
         with self.assertRaises(json.decoder.JSONDecodeError,
                                msg="expected JSONDecodeError exception hasn't been raised"):
             sender = Sender()
-            conn = ConnectTest(b'ZBXD\x01\x04\x00\x00\x00\x04\x00\x00\x00test')
+            conn = common.MockConnector(b'ZBXD\x01\x04\x00\x00\x00\x04\x00\x00\x00test')
             sender._Sender__get_response(conn)
 
         with self.assertRaises(ProcessingError,
                                msg="expected ProcessingError exception hasn't been raised"):
             sender = Sender()
-            conn = ConnectTest(b'test')
+            conn = common.MockConnector(b'test')
             sender._Sender__get_response(conn)
 
         with self.assertRaises(ProcessingError,
                                msg="expected ProcessingError exception hasn't been raised"):
             sender = Sender()
-            conn = ConnectTest(b'ZBXD\x04\x04\x00\x00\x00\x04\x00\x00\x00test')
+            conn = common.MockConnector(b'ZBXD\x04\x04\x00\x00\x00\x04\x00\x00\x00test')
             sender._Sender__get_response(conn)
 
         with self.assertRaises(ProcessingError,
                                msg="expected ProcessingError exception hasn't been raised"):
             sender = Sender()
-            conn = ConnectTest(b'ZBXD\x00\x04\x00\x00\x00\x04\x00\x00\x00test')
+            conn = common.MockConnector(b'ZBXD\x00\x04\x00\x00\x00\x04\x00\x00\x00test')
             sender._Sender__get_response(conn)
 
         # Compression check
         try:
             sender = Sender()
-            conn = ConnectTest(b'ZBXD\x03\x10\x00\x00\x00\x02\x00\x00\x00x\x9c\xab\xae\x05\x00\x01u\x00\xf9')
+            conn = common.MockConnector(b'ZBXD\x03\x10\x00\x00\x00\x02\x00\x00\x00x\x9c\xab\xae\x05\x00\x01u\x00\xf9')
             sender._Sender__get_response(conn)
         except json.decoder.JSONDecodeError:
             self.fail(f"raised unexpected JSONDecodeError during the compression check")
@@ -236,18 +203,7 @@ class TestSender(unittest.TestCase):
         ]
 
         def mock_chunk_send(self, items):
-            info = {
-                'processed': len([json.loads(i.value) for i in items if json.loads(i.value)]),
-                'failed': len([json.loads(i.value) for i in items if not json.loads(i.value)]),
-                'total': len(items),
-                'seconds spent': '0.000100'
-            }
-            result = {"127.0.0.1:10051": {
-                'response': 'success',
-                'info': '; '.join([f"{k}: {v}" for k,v in info.items()])
-            }}
-
-            return result
+            return {"127.0.0.1:10051": common.response_gen(items)}
 
         for case in test_cases:
             with patch.multiple(
@@ -312,131 +268,90 @@ class TestSender(unittest.TestCase):
     def test_send_value(self):
         """Tests send_value method in different cases"""
 
-        test_cases = [
-            {
-                'input': {'host':'test_host', 'key':'test_key', 'value': 0, 'clock': 1695713666, 'ns': 100},
-                'output': json.dumps(
-                    {"processed": 1, "failed": 0, "total": 1, "time": "0.000100", "chunk": 1}
-                )
-            }
-        ]
-
-        def mock_chunk_send(self, items):
-            info = {
-                'processed': len([i for i in items if i]),
-                'failed': len([i for i in items if not i]),
-                'total': len(items),
-                'seconds spent': '0.000100'
-            }
-            result = {"127.0.0.1:10051": {
-                'response': 'success',
-                'info': '; '.join([f"{k}: {v}" for k,v in info.items()])
-            }}
-
-            return result
-
-        for case in test_cases:
-            with patch.multiple(
-                    Sender,
-                    _Sender__chunk_send=mock_chunk_send):
-
-                sender = Sender()
-                resp = sender.send_value(**case['input'])
-
-                self.assertEqual(str(resp), case['output'],
-                                 f"unexpected output with input data: {case['input']}")
-
-
-class TestCluster(unittest.TestCase):
-    """Test cases for Zabbix Cluster object"""
-
-    def test_parsing(self):
-        """Tests creating of Zabbix Cluster object"""
+        request = {"host": "test_host", "key": "test_key", "value": "true", "clock": 1695713666, "ns": 100}
+        output = common.response_gen([request])
+        response = ZabbixProtocol.create_packet(output, common.MockLogger())
 
         test_cases = [
             {
-                'input': ['127.0.0.1'],
-                'clusters': json.dumps([["127.0.0.1", 10051]])
-            },
-            {
-                'input': ['localhost:10151'],
-                'clusters': json.dumps([["localhost", 10151]])
-            },
-            {
-                'input': ['zabbix.cluster.node1','zabbix.cluster.node2:20051','zabbix.cluster.node3:30051'],
-                'clusters': json.dumps([
-                    ["zabbix.cluster.node1", 10051], ["zabbix.cluster.node2", 20051], ["zabbix.cluster.node3", 30051]
-                ])
-            }
-        ]
-
-        for case in test_cases:
-            cluster = Cluster(case['input'])
-
-            self.assertEqual(str(cluster), case['clusters'],
-                             f"unexpected output with input data: {case['input']}")
-
-
-class TestItemValue(unittest.TestCase):
-    """Test cases for Zabbix Item object"""
-
-    def test_parsing(self):
-        """Tests creating of Zabbix Item object"""
-
-        test_cases = [
-            {
-                'input': {'host':'test_host', 'key':'test_key', 'value': 0},
-                'output': json.dumps({"host": "test_host", "key": "test_key", "value": "0"}),
-                'exception': ValueError,
+                'connection': {'input_stream': response},
+                'input': {'use_ipv6': False},
+                'output': output,
                 'raised': False
             },
             {
-                'input': {'host':'test_host', 'key':'test_key', 'value': 0, 'clock': 1695713666},
-                'output':  json.dumps({"host": "test_host", "key": "test_key", "value": "0", "clock": 1695713666}),
-                'exception': ValueError,
+                'connection': {'input_stream': response},
+                'input': {'use_ipv6': True},
+                'output': output,
                 'raised': False
             },
             {
-                'input': {'host':'test_host', 'key':'test_key', 'value': 0, 'clock': '123abc'},
-                'output':  json.dumps({"host": "test_host", "key": "test_key", "value": "0", "clock": '123abc'}),
-                'exception': ValueError,
+                'connection': {'input_stream': response},
+                'input': {'source_ip': DEFAULT_VALUES['source_ip']},
+                'output': output,
+                'raised': False
+            },
+            {
+                'connection': {'input_stream': response},
+                'input': {'socket_wrapper': common.socket_wrapper},
+                'output': output,
+                'raised': False
+            },
+            {
+                'connection': {'input_stream': response, 'exception': socket.error},
+                'input': {},
+                'output': output,
                 'raised': True
             },
             {
-                'input': {'host':'test_host', 'key':'test_key', 'value': 0, 'clock': 1695713666, 'ns': 100},
-                'output': json.dumps({"host": "test_host", "key": "test_key", "value": "0", "clock": 1695713666, "ns": 100}),
-                'exception': ValueError,
-                'raised': False
+                'connection': {'input_stream': response, 'exception': socket.gaierror},
+                'input': {},
+                'output': output,
+                'raised': True
             },
             {
-                'input': {'host':'test_host', 'key':'test_key', 'value': 0, 'ns': '123abc'},
-                'output': json.dumps({"host": "test_host", "key": "test_key", "value": "0", "ns": '123abc'}),
-                'exception': ValueError,
+                'connection': {'input_stream': response, 'exception': socket.timeout},
+                'input': {},
+                'output': output,
+                'raised': True
+            },
+            {
+                'connection': {'input_stream': response, 'exception': ConnectionResetError},
+                'input': {},
+                'output': output,
                 'raised': True
             }
         ]
 
         for case in test_cases:
-            try:
-                item = ItemValue(**case['input'])
-            except ValueError:
-                if not case['raised']:
-                    self.fail(f"raised unexpected ValueError for input data: {case['input']}")
-            else:
-                if case['raised']:
-                    self.fail(f"not raised expected ValueError for input data: {case['input']}")
+            with unittest.mock.patch('socket.socket') as mock_socket:
+                test_connector = common.MockConnector(**case['connection'])
+                mock_socket.return_value.recv = test_connector.recv
+                mock_socket.return_value.sendall = test_connector.sendall
+                sender = Sender(**case['input'])
 
-                self.assertEqual(str(item), case['output'],
-                                 f"unexpected output with input data: {case['input']}")
-                
-                self.assertEqual(str(item), repr(item),
-                                 f"unexpected output with input data: {case['input']}")
+                try:
+                    resp = sender.send_value(**request)
+                except case['connection'].get('exception', Exception):
+                    if not case['raised']:
+                        self.fail(f"raised unexpected Exception with input data: {case['input']}")
+                else:
+                    self.assertEqual(repr(resp), repr(TrapperResponse(1).add(case['output'])),
+                                    f"unexpected output with input data: {case['input']}")
 
+        for exc in [socket.timeout, socket.gaierror]:
+            with unittest.mock.patch('socket.socket') as mock_socket:
+                test_connector = common.MockConnector(response, exception=exc)
+                mock_socket.return_value.recv = test_connector.recv
+                mock_socket.return_value.sendall = test_connector.sendall
+                mock_socket.return_value.connect = test_connector.connect
+                sender = Sender(**case['input'])
 
-class TestZabbixProtocol(unittest.TestCase):
-    """Test cases for ZabbixProtocol object"""
+                with self.assertRaises(ProcessingError,
+                                msg="expected ProcessingError exception hasn't been raised"):
+                    resp = sender.send_value(**request)
 
-    def test_create_packet(self):
+    def test_create_request(self):
         """Tests create_packet method in different cases"""
 
         test_cases = [
@@ -460,14 +375,10 @@ class TestZabbixProtocol(unittest.TestCase):
 (\xb5\xb883?/>-'1\x1d$_\x96\x98S\x9a\nRa\xa0T\x1b[\x0b\x00l\xbf o"
             }
         ]
-        
-        class Logger():
-            def debug(self, *args, **kwargs):
-                pass
 
         for case in test_cases:
 
-            resp = ZabbixProtocol.create_packet(Sender()._Sender__create_request(**case['input']), Logger(), case['compression'])
+            resp = ZabbixProtocol.create_packet(Sender()._Sender__create_request(**case['input']), common.MockLogger(), case['compression'])
             self.assertEqual(resp, case['output'],
                              f"unexpected output with input data: {case['input']}")
 

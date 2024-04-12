@@ -8,7 +8,8 @@ import sys
 import unittest
 
 sys.path.append('.')
-from zabbix_utils.api import ZabbixAPI, APIVersion
+from zabbix_utils.api import ZabbixAPI
+from zabbix_utils.types import APIVersion
 
 
 class IntegrationAPITest(unittest.TestCase):

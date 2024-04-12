@@ -16,30 +16,28 @@ except ImportError:
 
 # PSK wrapper function for SSL connection
 def psk_wrapper(sock, tls):
-    psk = None
-    psk_identity = tls.get('tlspskidentity')
-    psk_file = tls.get('tlspskfile')
+    # Pre-Shared Key (PSK) and PSK Identity
+    psk = bytes.fromhex('608b0a0049d41fdb35a824ef0a227f24e5099c60aa935e803370a961c937d6f7')
+    psk_identity = b'PSKID'
 
-    # Read PSK from file if specified
-    if psk_file:
-        with open(psk_file, encoding='utf-8') as f:
-            psk = f.read()
+    return sslpsk.wrap_socket(
+        sock,
+        ssl_version=ssl.PROTOCOL_TLSv1_2,
+        ciphers='ECDHE-PSK-AES128-CBC-SHA256',
+        psk=(psk, psk_identity)
+    )
 
-    # Check if both PSK and PSK identity are available
-    if psk and psk_identity:
-        return sslpsk.wrap_socket(
-            sock,
-            ssl_version=ssl.PROTOCOL_TLSv1_2,
-            ciphers='ECDHE-PSK-AES128-CBC-SHA256',
-            psk=(psk, psk_identity)
-        )
 
-    # Return original socket if PSK or PSK identity is missing
-    return sock
-
+# Zabbix server details
+ZABBIX_SERVER = "127.0.0.1"
+ZABBIX_PORT = 10051
 
 # Create a Sender instance with PSK support
-sender = Sender(use_config=True, socket_wrapper=psk_wrapper)
+sender = Sender(
+    server=ZABBIX_SERVER,
+    port=ZABBIX_PORT,
+    socket_wrapper=psk_wrapper
+)
 
 # Send a value to a Zabbix server/proxy with specified parameters
 # Parameters: (host, key, value, clock, ns)

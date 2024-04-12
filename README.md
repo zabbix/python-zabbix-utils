@@ -3,7 +3,7 @@
 [![Tests](https://github.com/zabbix/python-zabbix-utils/actions/workflows/tests.yaml/badge.svg)](https://github.com/zabbix/python-zabbix-utils/actions/workflows/tests.yaml)
 [![Zabbix API](https://github.com/zabbix/python-zabbix-utils/actions/workflows/integration_api.yaml/badge.svg)](https://github.com/zabbix/python-zabbix-utils/actions/workflows/integration_api.yaml)
 [![Zabbix sender](https://github.com/zabbix/python-zabbix-utils/actions/workflows/integration_sender.yaml/badge.svg)](https://github.com/zabbix/python-zabbix-utils/actions/workflows/integration_sender.yaml)
-[![Zabbix get](https://github.com/zabbix/python-zabbix-utils/actions/workflows/integration_get.yaml/badge.svg)](https://github.com/zabbix/python-zabbix-utils/actions/workflows/integration_get.yaml)
+[![Zabbix get](https://github.com/zabbix/python-zabbix-utils/actions/workflows/integration_getter.yaml/badge.svg)](https://github.com/zabbix/python-zabbix-utils/actions/workflows/integration_getter.yaml)
 [![Zabbix 5.0](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_50.yaml/badge.svg)](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_50.yaml)
 [![Zabbix 6.0](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_60.yaml/badge.svg)](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_60.yaml)
 [![Zabbix 6.4](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_64.yaml/badge.svg)](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_64.yaml)
@@ -30,6 +30,10 @@ Tested on:
 * Zabbix 5.0, 6.0, 6.4 and pre-7.0
 * Python 3.8, 3.9, 3.10, 3.11 and 3.12
 
+Dependencies:
+
+* [aiohttp](https://github.com/aio-libs/aiohttp) (in case of async use)
+
 ## Documentation
 
 ### Installation
@@ -40,11 +44,17 @@ Install **zabbix_utils** library using pip:
 $ pip install zabbix_utils
 ```
 
+To install the library with dependencies for asynchronous work use the following way:
+
+```bash
+$ pip install zabbix_utils[async]
+```
+
 ### Use cases
 
 ##### To work with Zabbix API
 
-To work with Zabbix API you can import and use **zabbix_utils** library as follows:
+To work with Zabbix API via synchronous I/O you can import and use **zabbix_utils** library as follows:
 
 ```python
 from zabbix_utils import ZabbixAPI
@@ -62,20 +72,38 @@ for user in users:
 api.logout()
 ```
 
+To work with Zabbix API via asynchronous I/O you can use the following way:
+
+```python
+import asyncio
+from zabbix_utils import AsyncZabbixAPI
+
+async def main():
+    api = AsyncZabbixAPI(url="127.0.0.1")
+    await api.login(user="User", password="zabbix")
+
+    users = await api.user.get(
+        output=['userid','name']
+    )
+
+    for user in users:
+        print(user['name'])
+
+    await api.logout()
+
+asyncio.run(main())
+```
+
 You can also authenticate using an API token (supported since Zabbix 5.4):
 
 ```python
-from zabbix_utils import ZabbixAPI
-
 api = ZabbixAPI(url="127.0.0.1")
 api.login(token="xxxxxxxx")
+```
 
-users = api.user.get(
-    output=['userid','name']
-)
-
-for user in users:
-    print(user['name'])
+```python
+api = AsyncZabbixAPI(url="127.0.0.1")
+await api.login(token="xxxxxxxx")
 ```
 
 When token is used, calling `api.logout()` is not necessary.
@@ -86,14 +114,6 @@ It is possible to specify authentication fields by the following environment var
 You can compare Zabbix API version with strings and numbers, for example:
 
 ```python
-from zabbix_utils import ZabbixAPI
-
-url = "127.0.0.1"
-user = "User"
-password = "zabbix"
-
-api = ZabbixAPI(url=url, user=user, password=password)
-
 # Method to get version
 ver = api.api_version()
 print(type(ver).__name__, ver) # APIVersion 7.0.0
@@ -111,11 +131,9 @@ print(ver != "7.0.0") # False
 print(ver.major)    # 7.0
 print(ver.minor)    # 0
 print(ver.is_lts()) # True
-
-api.logout()
 ```
 
-In case the API object or method name matches one of Python keywords, you can use the suffix `_` in their name to execute correctly:
+In case the API object or method name matches one of Python keywords, you can use the suffix `_` in their name to execute correctly, for example:
 ```python
 from zabbix_utils import ZabbixAPI
 
@@ -152,7 +170,23 @@ print(response)
 # {"processed": 1, "failed": 0, "total": 1, "time": "0.000338", "chunk": 1}
 ```
 
-Or you can prepare a list of item values and send all at once:
+The asynchronous way:
+
+```python
+import asyncio
+from zabbix_utils import AsyncSender
+
+async def main():
+    sender = AsyncSender(server='127.0.0.1', port=10051)
+    response = await sender.send_value('host', 'item.key', 'value', 1695713666)
+
+    print(response)
+    # {"processed": 1, "failed": 0, "total": 1, "time": "0.000338", "chunk": 1}
+
+asyncio.run(main())
+```
+
+You can also prepare a list of item values and send all at once:
 
 ```python
 from zabbix_utils import ItemValue, Sender
@@ -201,7 +235,7 @@ In such case, the value will be sent to the first available node of each cluster
 
 ##### To work via Zabbix get protocol
 
-To get a value by item key from a Zabbix agent or agent 2 you can import and use the library as follows:
+To get a value by item key from a Zabbix agent or agent 2 via synchronous I/O the library can be imported and used as follows:
 
 ```python
 from zabbix_utils import Getter
@@ -211,6 +245,22 @@ resp = agent.get('system.uname')
 
 print(resp.value)
 # Linux test_server 5.15.0-3.60.5.1.el9uek.x86_64
+```
+
+The library can be used via asynchronous I/O, as in the following example:
+
+```python
+import asyncio
+from zabbix_utils import AsyncGetter
+
+async def main():
+    agent = AsyncGetter(host='127.0.0.1', port=10050)
+    resp = await agent.get('system.uname')
+
+    print(resp.value)
+    # Linux test_server 5.15.0-3.60.5.1.el9uek.x86_64
+
+asyncio.run(main())
 ```
 
 > Please, refer to the [Zabbix agent protocol](https://www.zabbix.com/documentation/current/manual/appendix/protocols/zabbix_agent) and the [using examples](https://github.com/zabbix/python-zabbix-utils/tree/main/examples/get) for more information.

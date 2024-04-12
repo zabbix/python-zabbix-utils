@@ -1,3 +1,15 @@
+## [2.0.0](https://github.com/zabbix/python-zabbix-utils/compare/v1.1.1...v2.0.0) (2024-04-12)
+
+### Features:
+
+- added asynchronous modules: AsyncZabbixAPI, AsyncSender, AsyncGetter
+- added examples of working with asynchronous modules
+
+### Bug fixes:
+
+- fixed issue [#7](https://github.com/zabbix/python-zabbix-utils/issues/7) in examples of PSK using on Linux
+- fixed small bugs and flaws
+
 ## [1.1.1](https://github.com/zabbix/python-zabbix-utils/compare/v1.1.0...v1.1.1) (2024-03-06)
 
 ### Changes:
