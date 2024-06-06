@@ -12,7 +12,12 @@ from zabbix_utils import ZabbixAPI, APIRequestError
 
 for x in range(20):
     try:
-        zapi = ZabbixAPI(url="localhost", user="Admin", password="zabbix")
+        zapi = ZabbixAPI(
+            url="localhost",
+            user="Admin",
+            password="zabbix",
+            skip_version_check=True
+        )
     except APIRequestError as error:
         print(f'Zabbix API is not ready... Data: {error}', flush=True)
         time.sleep(5)

@@ -33,7 +33,8 @@ class CompatibilityAPITest(unittest.TestCase):
         self.token_id = None
         self.token = None
         self.zapi = ZabbixAPI(
-            url=self.url
+            url=self.url,
+            skip_version_check=True
         )
         self._create_token()
 
@@ -240,7 +241,8 @@ class CompatibilityAsyncAPITest(unittest.IsolatedAsyncioTestCase):
         self.token_id = None
         self.token = None
         self.zapi = AsyncZabbixAPI(
-            url=self.url
+            url=self.url,
+            skip_version_check=True
         )
         await self._create_token()
 
