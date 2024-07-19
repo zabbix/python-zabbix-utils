@@ -36,9 +36,9 @@ Dependencies:
 
 * [aiohttp](https://github.com/aio-libs/aiohttp) (in case of async use)
 
-## Documentation
+## Installation
 
-### Installation
+### Installation from PyPI
 
 Install **zabbix_utils** library using pip:
 
@@ -51,6 +51,56 @@ To install the library with dependencies for asynchronous work use the following
 ```bash
 $ pip install zabbix_utils[async]
 ```
+
+### Installation from Zabbix repository
+
+First of all, you need to install Zabbix repository. Official Zabbix packages for Red Hat Enterprise Linux and derivatives, as well as for Debian and derivatives are available on [Zabbix website](https://www.zabbix.com/download).
+
+**Red Hat Enterprise Linux and derivatives**
+
+Install **zabbix_utils** library from Zabbix repository:
+
+```bash
+# dnf install python3-zabbix-utils
+```
+
+To install additional dependencies such as aiohttp for asynchronous work use the following way:
+```bash
+# dnf install epel-release
+# dnf install python3-aiohttp
+```
+
+**Debian / Ubuntu and derivatives**
+
+Install **zabbix_utils** library from Zabbix repository:
+
+```bash
+# apt install python3-zabbix-utils
+```
+
+To install additional dependencies such as aiohttp for asynchronous work use the following way:
+```bash
+# apt install python3-aiohttp
+```
+
+### Installation from GitHub
+
+Clone the **zabbix_utils** repository:
+
+```bash
+$ git clone https://github.com/zabbix/python-zabbix-utils
+```
+
+Install **zabbix_utils** library using setup.py:
+
+```bash
+$ cd python-zabbix-utils-master/
+$ python3 setup.py install
+```
+
+To install dependencies use one of the ways above.
+
+## Documentation
 
 ### Use cases
 
