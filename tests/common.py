@@ -78,15 +78,23 @@ class MockBasicAuth():
     login = API_DEFAULTS['user']
     password = API_DEFAULTS['password']
 
+class MockSessionConn():
+    def __init__(self):
+        self._ssl = None
 
 class MockSession():
     def __init__(self, exception=None):
         self._default_auth = None
+        self._connector = MockSessionConn()
         self.EXC = exception
     def set_auth(self):
         self._default_auth = MockBasicAuth()
     def del_auth(self):
         self._default_auth = None
+    def set_ssl(self, ssl):
+        self._connector._ssl = ssl
+    def del_ssl(self):
+        self._connector._ssl = None
     def set_exception(self, exception):
         self.EXC = exception
     def del_exception(self):

@@ -33,7 +33,7 @@ jobs:
           TBOT_CHAT: ${{ vars.TBOT_CHAT }}
           SUBJECT: Importing test without requirements FAIL
         run: |
-          bash ./.github/scripts/library_import_tests.sh "ZabbixAPI" "Unable to connect to" > /tmp/importing.log
+          bash ./.github/scripts/library_import_tests.sh "sync" "ZabbixAPI" "Unable to connect to" > /tmp/importing.log
       - name: Check import of async without requirements
         continue-on-error: true
         env:
@@ -41,7 +41,7 @@ jobs:
           TBOT_CHAT: ${{ vars.TBOT_CHAT }}
           SUBJECT: Importing test without requirements FAIL
         run: |
-          bash ./.github/scripts/library_import_tests.sh "AsyncZabbixAPI" "ModuleNotFoundError:" > /tmp/importing.log
+          bash ./.github/scripts/library_import_tests.sh "async" "AsyncZabbixAPI" "ModuleNotFoundError:" > /tmp/importing.log
       - name: Install requirements
         run: |
           pip install -r ./requirements.txt
@@ -52,7 +52,7 @@ jobs:
           TBOT_CHAT: ${{ vars.TBOT_CHAT }}
           SUBJECT: Importing tests with requirements FAIL
         run: |
-          bash ./.github/scripts/library_import_tests.sh "AsyncZabbixAPI" "aiohttp.client.ClientSession" > /tmp/importing.log
+          bash ./.github/scripts/library_import_tests.sh "async" "AsyncZabbixAPI" "aiohttp.client.ClientSession" > /tmp/importing.log
       - name: Raise an exception
         run: |
           test $(cat /tmp/importing.log | wc -l) -eq 0 || exit 1
@@ -77,9 +77,8 @@ jobs:
           echo -e "CacheUpdateFrequency=1\n" >> ./conf/zabbix_server.conf
           sudo mkdir -p /etc/nginx/ssl/
           sudo cp $WORKDIR/${{ env.CONFIG_PATH }}/.htpasswd /etc/nginx/.htpasswd
-          sudo cp $WORKDIR/${{ env.CONFIG_PATH }}/nginx.crt /etc/nginx/ssl/nginx.crt
-          sudo cp $WORKDIR/${{ env.CONFIG_PATH }}/nginx.key /etc/nginx/ssl/nginx.key
           sudo cp $WORKDIR/${{ env.CONFIG_PATH }}/default.conf /etc/nginx/sites-enabled/default
+          sudo openssl req -x509 -nodes -days 1 -newkey rsa:2048 -keyout /etc/nginx/ssl/nginx.key -out /etc/nginx/ssl/nginx.crt -config $WORKDIR/${{ env.CONFIG_PATH }}/nginx.cnf
           sudo chown -R www-data:www-data /etc/nginx/
           cd ui
           sudo rm /var/www/html/index.html
