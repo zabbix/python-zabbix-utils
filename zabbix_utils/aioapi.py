@@ -34,7 +34,7 @@ from textwrap import shorten
 from os import environ as env
 
 from urllib.error import URLError
-from typing import Callable, Union, Optional, Any, List
+from typing import Callable, Union, Optional, Any
 from aiohttp.client_exceptions import ContentTypeError
 
 from .types import APIVersion
@@ -420,6 +420,8 @@ class AsyncZabbixAPI():
             ctx = ssl.create_default_context()
             ctx.check_hostname = False
             ctx.verify_mode = ssl.CERT_NONE
+        elif not isinstance(self.client_session._connector._ssl, bool):
+            ctx = self.client_session._connector._ssl
         else:
             ctx = None
 

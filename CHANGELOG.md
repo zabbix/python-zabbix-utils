@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/zabbix/python-zabbix-utils/compare/v2.0.0...v2.0.1) (2024-09-18)
+
+### Features:
+
+- added ssl_context argument to ZabbixAPI to allow more flexible configuration of SSL connections
+- added support of SSL connection configuration to AsyncZabbixAPI
+
 ## [2.0.0](https://github.com/zabbix/python-zabbix-utils/compare/v1.1.1...v2.0.0) (2024-04-12)
 
 ### Features:

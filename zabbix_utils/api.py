@@ -33,7 +33,7 @@ from uuid import uuid4
 from os import environ as env
 from urllib.error import URLError
 
-from typing import Callable, Union, Optional, Any
+from typing import Callable, Optional, Any
 
 from .types import APIVersion
 from .common import ModuleUtils
@@ -119,7 +119,8 @@ class ZabbixAPI():
     def __init__(self, url: Optional[str] = None, token: Optional[str] = None,
                  user: Optional[str] = None, password: Optional[str] = None,
                  http_user: Optional[str] = None, http_password: Optional[str] = None,
-                 skip_version_check: bool = False, validate_certs: bool = True, timeout: int = 30):
+                 skip_version_check: bool = False, validate_certs: bool = True,
+                 ssl_context: Optional[ssl.SSLContext] = None, timeout: int = 30):
 
         url = url or env.get('ZABBIX_URL') or 'http://localhost/zabbix/api_jsonrpc.php'
         user = user or env.get('ZABBIX_USER') or None
@@ -132,6 +133,11 @@ class ZabbixAPI():
 
         if http_user and http_password:
             self.__basic_auth(http_user, http_password)
+
+        if ssl_context is not None:
+            if not isinstance(ssl_context, ssl.SSLContext):
+                raise TypeError('Function "ssl_context" must return "ssl.SSLContext".') from None
+        self.ssl_context = ssl_context
 
         self.__check_version(skip_version_check)
 
@@ -337,6 +343,8 @@ class ZabbixAPI():
             ctx = ssl.create_default_context()
             ctx.check_hostname = False
             ctx.verify_mode = ssl.CERT_NONE
+        elif self.ssl_context is not None:
+            ctx = self.ssl_context
         else:
             ctx = None
 
