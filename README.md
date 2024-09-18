@@ -94,7 +94,7 @@ $ git clone https://github.com/zabbix/python-zabbix-utils
 Install **zabbix_utils** library using setup.py:
 
 ```bash
-$ cd python-zabbix-utils-master/
+$ cd python-zabbix-utils/
 $ python3 setup.py install
 ```
 
