@@ -20,10 +20,10 @@ api = ZabbixAPI(**ZABBIX_AUTH)
 
 # Delete items with specified IDs
 try:
-    api.item.delete(ITEM_IDS)
+    api.item.delete(*ITEM_IDS)
 
-    # Alternative way to do the same:
-    # api.item.delete(*ITEM_IDS)
+    # Alternative way to do the same (since v2.0.2):
+    # api.item.delete(ITEM_IDS)
 except APIRequestError as e:
     print(f"An error occurred when attempting to delete items: {e}")
 

@@ -32,10 +32,10 @@ async def main():
 
     # Delete items with specified IDs
     try:
-        await api.item.delete(ITEM_IDS)
+        await api.item.delete(*ITEM_IDS)
 
-        # Alternative way to do the same:
-        # await api.item.delete(*ITEM_IDS)
+        # Alternative way to do the same (since v2.0.2):
+        # await api.item.delete(ITEM_IDS)
     except APIRequestError as e:
         print(f"An error occurred when attempting to delete items: {e}")
     else:
