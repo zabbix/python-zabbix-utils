@@ -68,3 +68,15 @@ jobs:
           tag: "v${{ env.LIBRARY_VERSION }}"
           bodyFile: RELEASE_NOTES.md
           artifacts: dist/*
+      - name: Send notification
+        run: |
+          python ./.github/scripts/release_notification.py
+        working-directory: ./
+        env:
+          MAIL_SERVER: ${{ secrets.MAIL_SERVER }}
+          MAIL_PORT: ${{ secrets.MAIL_PORT }}
+          MAIL_USER: ${{ secrets.MAIL_USER }}
+          MAIL_PASS: ${{ secrets.MAIL_PASS }}
+          RELEASE_RECIPIENT_LIST: ${{ secrets.RELEASE_RECIPIENT_LIST }}
+          LIBRARY_VERSION: ${{ env.LIBRARY_VERSION }}
+          REPOSITORY: ${{ github.repository }}
