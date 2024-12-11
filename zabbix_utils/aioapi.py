@@ -84,13 +84,17 @@ class APIObject():
             # Support '_' suffix to avoid conflicts with python keywords
             method = removesuffix(self.object, '_') + "." + removesuffix(name, '_')
 
+            # Support passing list of ids and params as a dict
+            params = kwargs or (
+                (args[0] if type(args[0]) in (list, dict,) else list(args)) if args else None)
+
             log.debug("Executing %s method", method)
 
             need_auth = method not in ModuleUtils.UNAUTH_METHODS
 
             response = await self.parent.send_async_request(
                 method,
-                args or kwargs,
+                params,
                 need_auth
             )
             return response.get('result')

@@ -83,13 +83,17 @@ class APIObject():
             # Support '_' suffix to avoid conflicts with python keywords
             method = removesuffix(self.object, '_') + "." + removesuffix(name, '_')
 
+            # Support passing list of ids and params as a dict
+            params = kwargs or (
+                (args[0] if type(args[0]) in (list, dict,) else list(args)) if args else None)
+
             log.debug("Executing %s method", method)
 
             need_auth = method not in ModuleUtils.UNAUTH_METHODS
 
             return self.parent.send_api_request(
                 method,
-                args or kwargs,
+                params,
                 need_auth
             ).get('result')
 
@@ -136,7 +140,7 @@ class ZabbixAPI():
 
         if ssl_context is not None:
             if not isinstance(ssl_context, ssl.SSLContext):
-                raise TypeError('Function "ssl_context" must return "ssl.SSLContext".') from None
+                raise TypeError('Parameter "ssl_context" must be an "ssl.SSLContext".') from None
         self.ssl_context = ssl_context
 
         self.__check_version(skip_version_check)
