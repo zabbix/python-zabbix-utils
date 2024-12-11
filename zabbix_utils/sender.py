@@ -27,12 +27,12 @@ import socket
 import logging
 import configparser
 
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Tuple
 
 from .logger import EmptyHandler
 from .common import ZabbixProtocol
 from .exceptions import ProcessingError
-from .types import TrapperResponse, ItemValue, Cluster
+from .types import TrapperResponse, ItemValue, Cluster, Node
 
 log = logging.getLogger(__name__)
 log.addHandler(EmptyHandler())
@@ -116,7 +116,7 @@ class Sender():
             config.read_string('[root]\n' + cfg.read())
         self.__read_config(config['root'])
 
-    def __get_response(self, conn: socket) -> Optional[str]:
+    def __get_response(self, conn: socket) -> Optional[dict]:
         try:
             result = json.loads(
                 ZabbixProtocol.parse_sync_packet(conn, log, ProcessingError)
@@ -135,99 +135,116 @@ class Sender():
             "data": [i.to_json() for i in items]
         }
 
+    def __send_to_cluster(self, cluster: Cluster, packet: bytes) -> Optional[Tuple[Node, dict]]:
+        active_node = None
+        active_node_idx = 0
+        for i, node in enumerate(cluster.nodes):
+
+            log.debug('Trying to send data to %s', node)
+
+            try:
+                if self.use_ipv6:
+                    connection = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+                else:
+                    connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            except socket.error:
+                raise ProcessingError(f"Error creating socket for {node}") from None
+
+            connection.settimeout(self.timeout)
+
+            if self.source_ip:
+                connection.bind((self.source_ip, 0,))
+
+            try:
+                connection.connect((node.address, node.port))
+            except (TimeoutError, socket.timeout):
+                log.debug(
+                    'The connection to %s timed out after %d seconds',
+                    node,
+                    self.timeout
+                )
+            except (ConnectionRefusedError, socket.gaierror) as err:
+                log.debug(
+                    'An error occurred while trying to connect to %s: %s',
+                    node,
+                    getattr(err, 'msg', str(err))
+                )
+            else:
+                active_node_idx = i
+                if i > 0:
+                    cluster.nodes[0], cluster.nodes[i] = cluster.nodes[i], cluster.nodes[0]
+                    active_node_idx = 0
+                active_node = node
+                break
+
+        if active_node is None:
+            log.error(
+                'Couldn\'t connect to all of cluster nodes: %s',
+                str(list(cluster.nodes))
+            )
+            connection.close()
+            raise ProcessingError(
+                f"Couldn't connect to all of cluster nodes: {list(cluster.nodes)}"
+            )
+
+        if self.socket_wrapper is not None:
+            connection = self.socket_wrapper(connection, self.tls)
+
+        try:
+            connection.sendall(packet)
+        except (TimeoutError, socket.timeout) as err:
+            log.error(
+                'The connection to %s timed out after %d seconds while trying to send',
+                active_node,
+                self.timeout
+            )
+            connection.close()
+            raise err
+        except (OSError, socket.error) as err:
+            log.warning(
+                'An error occurred while trying to send to %s: %s',
+                active_node,
+                getattr(err, 'msg', str(err))
+            )
+            connection.close()
+            raise err
+
+        try:
+            response = self.__get_response(connection)
+        except ConnectionResetError as err:
+            log.debug('Get value error: %s', err)
+            raise err
+        log.debug('Response from %s: %s', active_node, response)
+
+        if response and response.get('response') != 'success':
+            if response.get('redirect'):
+                print(response)
+                log.debug(
+                    'Packet was redirected from %s to %s. Proxy group revision: %s.',
+                    active_node,
+                    response['redirect']['address'],
+                    response['redirect']['revision']
+                )
+                cluster.nodes[active_node_idx] = Node(*response['redirect']['address'].split(':'))
+                active_node, response = self.__send_to_cluster(cluster, packet)
+            else:
+                raise socket.error(response)
+
+        try:
+            connection.close()
+        except socket.error:
+            pass
+
+        return active_node, response
+
     def __chunk_send(self, items: list) -> dict:
         responses = {}
 
         packet = ZabbixProtocol.create_packet(self.__create_request(items), log, self.compression)
 
         for cluster in self.clusters:
-            active_node = None
-
-            for i, node in enumerate(cluster.nodes):
-
-                log.debug('Trying to send data to %s', node)
-
-                try:
-                    if self.use_ipv6:
-                        connection = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-                    else:
-                        connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                except socket.error:
-                    raise ProcessingError(f"Error creating socket for {node}") from None
-
-                connection.settimeout(self.timeout)
-
-                if self.source_ip:
-                    connection.bind((self.source_ip, 0,))
-
-                try:
-                    connection.connect((node.address, node.port))
-                except (TimeoutError, socket.timeout):
-                    log.debug(
-                        'The connection to %s timed out after %d seconds',
-                        node,
-                        self.timeout
-                    )
-                except (ConnectionRefusedError, socket.gaierror) as err:
-                    log.debug(
-                        'An error occurred while trying to connect to %s: %s',
-                        node,
-                        getattr(err, 'msg', str(err))
-                    )
-                else:
-                    if i > 0:
-                        cluster.nodes[0], cluster.nodes[i] = cluster.nodes[i], cluster.nodes[0]
-                    active_node = node
-                    break
-
-            if active_node is None:
-                log.error(
-                    'Couldn\'t connect to all of cluster nodes: %s',
-                    str(list(cluster.nodes))
-                )
-                connection.close()
-                raise ProcessingError(
-                    f"Couldn't connect to all of cluster nodes: {list(cluster.nodes)}"
-                )
-
-            if self.socket_wrapper is not None:
-                connection = self.socket_wrapper(connection, self.tls)
-
-            try:
-                connection.sendall(packet)
-            except (TimeoutError, socket.timeout) as err:
-                log.error(
-                    'The connection to %s timed out after %d seconds while trying to send',
-                    active_node,
-                    self.timeout
-                )
-                connection.close()
-                raise err
-            except (OSError, socket.error) as err:
-                log.warning(
-                    'An error occurred while trying to send to %s: %s',
-                    active_node,
-                    getattr(err, 'msg', str(err))
-                )
-                connection.close()
-                raise err
-
-            try:
-                response = self.__get_response(connection)
-            except ConnectionResetError as err:
-                log.debug('Get value error: %s', err)
-                raise err
-            log.debug('Response from %s: %s', active_node, response)
-
-            if response and response.get('response') != 'success':
-                raise socket.error(response)
-
+            active_node, response = self.__send_to_cluster(cluster, packet)
             responses[active_node] = response
-
-            try:
-                connection.close()
-            except socket.error:
-                pass
 
         return responses
 

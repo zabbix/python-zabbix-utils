@@ -21,10 +21,11 @@ from zabbix_utils.types import AgentResponse, ItemValue, TrapperResponse, APIVer
 ZABBIX_URL = '127.0.0.1'
 ZABBIX_USER = 'Admin'
 ZABBIX_PASSWORD = 'zabbix'
+ZABBIX_PROXY_ADDR = '127.0.0.1'
 
 
 class CompatibilityAPITest(unittest.TestCase):
-    """Compatibility synchronous test with Zabbix API version 7.0"""
+    """Compatibility synchronous test with Zabbix API version 7.0, 7.2"""
 
     def setUp(self):
         self.url = ZABBIX_URL
@@ -110,7 +111,7 @@ class CompatibilityAPITest(unittest.TestCase):
 
 
 class CompatibilitySenderTest(unittest.TestCase):
-    """Compatibility synchronous test with Zabbix sender version 7.0"""
+    """Compatibility synchronous test with Zabbix sender version 7.0, 7.2"""
 
     def setUp(self):
         self.ip = ZABBIX_URL
@@ -121,32 +122,42 @@ class CompatibilitySenderTest(unittest.TestCase):
             port=self.port,
             chunk_size=self.chunk_size
         )
+        self.zapi = None
+        self.hostid = None
+        self.proxy_groupid = None
+        self.proxy_ip = ZABBIX_PROXY_ADDR
         self.hostname = f"{self.__class__.__name__}_host"
         self.itemname = f"{self.__class__.__name__}_item"
         self.itemkey = f"{self.__class__.__name__}"
-        self.prepare_items()
+        self.pgroupname = "CompatibilitySenderTest_group"
+        self.proxy = "CompatibilitySenderTest_proxy"
+        self.proxyids = []
+        self.prepare_instance()
 
-    def prepare_items(self):
-        """Creates host and items for sending values later"""
+    def tearDown(self):
+        if self.zapi:
+            self.zapi.logout()
 
-        zapi = ZabbixAPI(
+    def prepare_instance(self):
+        """Creates required entities for sending values later"""
+
+        self.zapi = ZabbixAPI(
             url=ZABBIX_URL,
             user=ZABBIX_USER,
             password=ZABBIX_PASSWORD,
             skip_version_check=True
         )
 
-        hosts = zapi.host.get(
+        hosts = self.zapi.host.get(
             filter={'host': self.hostname},
             output=['hostid']
         )
 
-        hostid = None
         if len(hosts) > 0:
-            hostid = hosts[0].get('hostid')
+            self.hostid = hosts[0].get('hostid')
 
-        if not hostid:
-            hostid = zapi.host.create(
+        if not self.hostid:
+            self.hostid = self.zapi.host.create(
                 host=self.hostname,
                 interfaces=[{
                     "type": 1,
@@ -159,9 +170,9 @@ class CompatibilitySenderTest(unittest.TestCase):
                 groups=[{"groupid": "2"}]
             )['hostids'][0]
 
-        self.assertIsNotNone(hostid, "Creating test host was going wrong")
+        self.assertIsNotNone(self.hostid, "Creating test host was going wrong")
 
-        items = zapi.item.get(
+        items = self.zapi.item.get(
             filter={'key_': self.itemkey},
             output=['itemid']
         )
@@ -171,23 +182,68 @@ class CompatibilitySenderTest(unittest.TestCase):
             itemid = items[0].get('itemid')
 
         if not itemid:
-            itemid = zapi.item.create(
+            itemid = self.zapi.item.create(
                 name=self.itemname,
                 key_=self.itemkey,
-                hostid=hostid,
+                hostid=self.hostid,
                 type=2,
                 value_type=3
             )['itemids'][0]
 
         time.sleep(2)
 
-        self.assertIsNotNone(hostid, "Creating test item was going wrong")
+        self.assertIsNotNone(itemid, "Creating test item was going wrong")
 
-        zapi.logout()
+        groups = self.zapi.proxygroup.get(
+            filter={'name': self.pgroupname},
+            output=['proxy_groupid']
+        )
+
+        if len(groups) > 0:
+            self.proxy_groupid = groups[0].get('proxy_groupid')
+
+        if not self.proxy_groupid:
+            self.proxy_groupid = self.zapi.proxygroup.create(
+                name=self.pgroupname,
+                failover_delay="10s",
+                min_online="1"
+            )['proxy_groupids'][0]
+
+            self.assertIsNotNone(self.proxy_groupid, "Creating test proxy group was going wrong")
+
+            time.sleep(10)
+
+        proxies = self.zapi.proxy.get(
+            search={'name': self.proxy},
+            output=['proxyid']
+        )
+        if len(proxies) > 0:
+            self.zapi.proxy.delete(*[p['proxyid'] for p in proxies])
+
+        self.proxyids += self.zapi.proxy.create(
+            name=self.proxy + "1",
+            operating_mode="0",
+            local_address=self.proxy_ip,
+            local_port=10061,
+            proxy_groupid=self.proxy_groupid
+        )['proxyids']
+        self.proxyids += self.zapi.proxy.create(
+            name=self.proxy + "2",
+            operating_mode="0",
+            local_address=self.proxy_ip,
+            local_port=10062,
+            proxy_groupid=self.proxy_groupid
+        )['proxyids']
+
+        self.assertTrue(bool(self.proxyids), "Creating test proxy group was going wrong")
 
     def test_send_values(self):
         """Tests sending item values"""
 
+        self.zapi.host.update(
+            hostid=self.hostid,
+            monitored_by="0"
+        )
         items = [
             ItemValue(self.hostname, self.itemkey, 10),
             ItemValue(self.hostname, self.itemkey, 'test message'),
@@ -208,9 +264,29 @@ class CompatibilitySenderTest(unittest.TestCase):
         self.assertEqual(first_chunk.processed, 4, "Number of the processed values is unexpected")
         self.assertEqual(first_chunk.failed, (first_chunk.total - first_chunk.processed), "Number of the failed values is unexpected")
 
+        for port in [10061, 10062]:
+            self.sender = Sender(
+                server=self.proxy_ip,
+                port=port,
+                chunk_size=self.chunk_size
+            )
+            self.zapi.host.update(
+                hostid=self.hostid,
+                monitored_by="2",
+                proxy_groupid=self.proxy_groupid
+            )
+            resp = self.sender.send_value(self.hostname, self.itemkey, 10)
+
+            self.assertEqual(type(resp), TrapperResponse, "Sending item values was going wrong")
+            self.assertEqual(resp.total, 1, "Total number of the sent values is unexpected")
+
+            first_chunk = list(resp.details.values())[0][0]
+            self.assertEqual(type(first_chunk), TrapperResponse, "Sending item values was going wrong")
+            self.assertEqual(first_chunk.total, 1, "Total number of the sent values is unexpected")
+
 
 class CompatibilityGetTest(unittest.TestCase):
-    """Compatibility synchronous test with Zabbix get version 7.0"""
+    """Compatibility synchronous test with Zabbix get version 7.0, 7.2"""
 
     def setUp(self):
         self.host = ZABBIX_URL
@@ -231,7 +307,7 @@ class CompatibilityGetTest(unittest.TestCase):
 
 
 class CompatibilityAsyncAPITest(unittest.IsolatedAsyncioTestCase):
-    """Compatibility asynchronous test with Zabbix API version 7.0"""
+    """Compatibility asynchronous test with Zabbix API version 7.0, 7.2"""
 
     async def asyncSetUp(self):
         self.url = ZABBIX_URL
@@ -323,7 +399,7 @@ class CompatibilityAsyncAPITest(unittest.IsolatedAsyncioTestCase):
 
 
 class CompatibilityAsyncSenderTest(unittest.IsolatedAsyncioTestCase):
-    """Compatibility asynchronous test with Zabbix sender version 7.0"""
+    """Compatibility asynchronous test with Zabbix sender version 7.0, 7.2"""
 
     async def asyncSetUp(self):
         self.ip = ZABBIX_URL
@@ -334,34 +410,42 @@ class CompatibilityAsyncSenderTest(unittest.IsolatedAsyncioTestCase):
             port=self.port,
             chunk_size=self.chunk_size
         )
+        self.zapi = None
+        self.hostid = None
+        self.proxy_groupid = None
+        self.proxy_ip = ZABBIX_PROXY_ADDR
         self.hostname = f"{self.__class__.__name__}_host"
         self.itemname = f"{self.__class__.__name__}_item"
         self.itemkey = f"{self.__class__.__name__}"
+        self.pgroupname = "CompatibilitySenderTest_group"
+        self.proxy = "CompatibilitySenderTest_proxy"
+        self.proxyids = []
         await self.prepare_items()
 
-    async def prepare_items(self):
-        """Creates host and items for sending values later"""
+    async def asyncTearDown(self):
+        if self.zapi:
+            self.zapi.logout()
 
-        zapi = AsyncZabbixAPI(
+    async def prepare_items(self):
+        """Creates required entities for sending values later"""
+
+        self.zapi = ZabbixAPI(
             url=ZABBIX_URL,
+            user=ZABBIX_USER,
+            password=ZABBIX_PASSWORD,
             skip_version_check=True
         )
-        await zapi.login(
-            user=ZABBIX_USER,
-            password=ZABBIX_PASSWORD
-        )
 
-        hosts = await zapi.host.get(
+        hosts = self.zapi.host.get(
             filter={'host': self.hostname},
             output=['hostid']
         )
 
-        hostid = None
         if len(hosts) > 0:
-            hostid = hosts[0].get('hostid')
+            self.hostid = hosts[0].get('hostid')
 
-        if not hostid:
-            created_host = await zapi.host.create(
+        if not self.hostid:
+            created_host = self.zapi.host.create(
                 host=self.hostname,
                 interfaces=[{
                     "type": 1,
@@ -373,11 +457,11 @@ class CompatibilityAsyncSenderTest(unittest.IsolatedAsyncioTestCase):
                 }],
                 groups=[{"groupid": "2"}]
             )
-            hostid = created_host['hostids'][0]
+            self.hostid = created_host['hostids'][0]
 
-        self.assertIsNotNone(hostid, "Creating test host was going wrong")
+        self.assertIsNotNone(self.hostid, "Creating test host was going wrong")
 
-        items = await zapi.item.get(
+        items = self.zapi.item.get(
             filter={'key_': self.itemkey},
             output=['itemid']
         )
@@ -387,23 +471,72 @@ class CompatibilityAsyncSenderTest(unittest.IsolatedAsyncioTestCase):
             itemid = items[0].get('itemid')
 
         if not itemid:
-            created_item = await zapi.item.create(
+            created_item = self.zapi.item.create(
                 name=self.itemname,
                 key_=self.itemkey,
-                hostid=hostid,
+                hostid=self.hostid,
                 type=2,
                 value_type=3
             )
             itemid = created_item['itemids'][0]
 
-        self.assertIsNotNone(hostid, "Creating test item was going wrong")
+        self.assertIsNotNone(itemid, "Creating test item was going wrong")
 
-        await zapi.logout()
+        groups = self.zapi.proxygroup.get(
+            filter={'name': self.pgroupname},
+            output=['proxy_groupid']
+        )
+
+        if len(groups) > 0:
+            self.proxy_groupid = groups[0].get('proxy_groupid')
+
+        if not self.proxy_groupid:
+            created_proxy_group = self.zapi.proxygroup.create(
+                name=self.pgroupname,
+                failover_delay="10s",
+                min_online="1"
+            )
+            self.proxy_groupid = created_proxy_group['proxy_groupids'][0]
+
+            self.assertIsNotNone(self.proxy_groupid, "Creating test proxy group was going wrong")
+
+            time.sleep(10)
+
+        proxies = self.zapi.proxy.get(
+            search={'name': self.proxy},
+            output=['proxyid']
+        )
+        if len(proxies) > 0:
+            self.zapi.proxy.delete(*[p['proxyid'] for p in proxies])
+
+        created_proxy = self.zapi.proxy.create(
+            name=self.proxy + "1",
+            operating_mode="0",
+            local_address=self.proxy_ip,
+            local_port=10061,
+            proxy_groupid=self.proxy_groupid
+        )
+        self.proxyids += created_proxy['proxyids']
+        created_proxy = self.zapi.proxy.create(
+            name=self.proxy + "2",
+            operating_mode="0",
+            local_address=self.proxy_ip,
+            local_port=10062,
+            proxy_groupid=self.proxy_groupid
+        )
+        self.proxyids += created_proxy['proxyids']
+
+        self.assertTrue(bool(self.proxyids), "Creating test proxy group was going wrong")
 
     async def test_send_values(self):
         """Tests sending item values"""
 
-        time.sleep(2)
+        self.zapi.host.update(
+            hostid=self.hostid,
+            monitored_by="0"
+        )
+
+        time.sleep(5)
 
         items = [
             ItemValue(self.hostname, self.itemkey, 10),
@@ -425,9 +558,29 @@ class CompatibilityAsyncSenderTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(first_chunk.processed, 4, "Number of the processed values is unexpected")
         self.assertEqual(first_chunk.failed, (first_chunk.total - first_chunk.processed), "Number of the failed values is unexpected")
 
+        for port in [10061, 10062]:
+            self.sender = AsyncSender(
+                server=self.proxy_ip,
+                port=port,
+                chunk_size=self.chunk_size
+            )
+            self.zapi.host.update(
+                hostid=self.hostid,
+                monitored_by="2",
+                proxy_groupid=self.proxy_groupid
+            )
+            resp = await self.sender.send_value(self.hostname, self.itemkey, 10)
+
+            self.assertEqual(type(resp), TrapperResponse, "Sending item values was going wrong")
+            self.assertEqual(resp.total, 1, "Total number of the sent values is unexpected")
+
+            first_chunk = list(resp.details.values())[0][0]
+            self.assertEqual(type(first_chunk), TrapperResponse, "Sending item values was going wrong")
+            self.assertEqual(first_chunk.total, 1, "Total number of the sent values is unexpected")
+
 
 class CompatibilityAsyncGetTest(unittest.IsolatedAsyncioTestCase):
-    """Compatibility asynchronous test with Zabbix get version 7.0"""
+    """Compatibility asynchronous test with Zabbix get version 7.0, 7.2"""
 
     async def asyncSetUp(self):
         self.host = ZABBIX_URL

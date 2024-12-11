@@ -29,12 +29,12 @@ import asyncio
 import logging
 import configparser
 
-from typing import Callable, Union, Optional
+from typing import Callable, Union, Optional, Tuple
 
 from .logger import EmptyHandler
 from .common import ZabbixProtocol
 from .exceptions import ProcessingError
-from .types import TrapperResponse, ItemValue, Cluster
+from .types import TrapperResponse, ItemValue, Cluster, Node
 
 log = logging.getLogger(__name__)
 log.addHandler(EmptyHandler())
@@ -138,99 +138,115 @@ Defaults to `None`.
             "data": [i.to_json() for i in items]
         }
 
+    async def __send_to_cluster(self, cluster: Cluster, packet: bytes) -> Optional[Tuple[Node, dict]]:
+        active_node = None
+        active_node_idx = 0
+        for i, node in enumerate(cluster.nodes):
+
+            log.debug('Trying to send data to %s', node)
+
+            connection_params = {
+                "host": node.address,
+                "port": node.port
+            }
+
+            if self.source_ip:
+                connection_params['local_addr'] = (self.source_ip, 0)
+
+            if self.ssl_context is not None:
+                connection_params['ssl'] = self.ssl_context(self.tls)
+                if not isinstance(connection_params['ssl'], ssl.SSLContext):
+                    raise TypeError(
+                        'Function "ssl_context" must return "ssl.SSLContext".') from None
+
+            connection = asyncio.open_connection(**connection_params)
+
+            try:
+                reader, writer = await asyncio.wait_for(connection, timeout=self.timeout)
+            except asyncio.TimeoutError:
+                log.debug(
+                    'The connection to %s timed out after %d seconds',
+                    node,
+                    self.timeout
+                )
+            except (ConnectionRefusedError, socket.gaierror) as err:
+                log.debug(
+                    'An error occurred while trying to connect to %s: %s',
+                    node,
+                    getattr(err, 'msg', str(err))
+                )
+            else:
+                active_node_idx = i
+                if i > 0:
+                    cluster.nodes[0], cluster.nodes[i] = cluster.nodes[i], cluster.nodes[0]
+                    active_node_idx = 0
+                active_node = node
+                break
+
+        if active_node is None:
+            log.error(
+                'Couldn\'t connect to all of cluster nodes: %s',
+                str(list(cluster.nodes))
+            )
+            raise ProcessingError(
+                f"Couldn't connect to all of cluster nodes: {list(cluster.nodes)}"
+            )
+
+        try:
+            writer.write(packet)
+            send_data = writer.drain()
+            await asyncio.wait_for(send_data, timeout=self.timeout)
+        except (asyncio.TimeoutError, socket.timeout) as err:
+            log.error(
+                'The connection to %s timed out after %d seconds while trying to send',
+                active_node,
+                self.timeout
+            )
+            writer.close()
+            await writer.wait_closed()
+            raise err
+        except (OSError, socket.error) as err:
+            log.warning(
+                'An error occurred while trying to send to %s: %s',
+                active_node,
+                getattr(err, 'msg', str(err))
+            )
+            writer.close()
+            await writer.wait_closed()
+            raise err
+        try:
+            response = await self.__get_response(reader)
+        except (ConnectionResetError, asyncio.exceptions.IncompleteReadError) as err:
+            log.debug('Get value error: %s', err)
+            raise err
+        log.debug('Response from %s: %s', active_node, response)
+
+        if response and response.get('response') != 'success':
+            if response.get('redirect'):
+                log.debug(
+                    'Packet was redirected from %s to %s. Proxy group revision: %s.',
+                    active_node,
+                    response['redirect']['address'],
+                    response['redirect']['revision']
+                )
+                cluster.nodes[active_node_idx] = Node(*response['redirect']['address'].split(':'))
+                active_node, response = await self.__send_to_cluster(cluster, packet)
+            else:
+                raise ProcessingError(response) from None
+
+        writer.close()
+        await writer.wait_closed()
+
+        return active_node, response
+
     async def __chunk_send(self, items: list) -> dict:
         responses = {}
 
         packet = ZabbixProtocol.create_packet(self.__create_request(items), log, self.compression)
 
         for cluster in self.clusters:
-            active_node = None
-
-            for i, node in enumerate(cluster.nodes):
-
-                log.debug('Trying to send data to %s', node)
-
-                connection_params = {
-                    "host": node.address,
-                    "port": node.port
-                }
-
-                if self.source_ip:
-                    connection_params['local_addr'] = (self.source_ip, 0)
-
-                if self.ssl_context is not None:
-                    connection_params['ssl'] = self.ssl_context(self.tls)
-                    if not isinstance(connection_params['ssl'], ssl.SSLContext):
-                        raise TypeError(
-                            'Function "ssl_context" must return "ssl.SSLContext".') from None
-
-                connection = asyncio.open_connection(**connection_params)
-
-                try:
-                    reader, writer = await asyncio.wait_for(connection, timeout=self.timeout)
-                except asyncio.TimeoutError:
-                    log.debug(
-                        'The connection to %s timed out after %d seconds',
-                        node,
-                        self.timeout
-                    )
-                except (ConnectionRefusedError, socket.gaierror) as err:
-                    log.debug(
-                        'An error occurred while trying to connect to %s: %s',
-                        node,
-                        getattr(err, 'msg', str(err))
-                    )
-                else:
-                    if i > 0:
-                        cluster.nodes[0], cluster.nodes[i] = cluster.nodes[i], cluster.nodes[0]
-                    active_node = node
-                    break
-
-            if active_node is None:
-                log.error(
-                    'Couldn\'t connect to all of cluster nodes: %s',
-                    str(list(cluster.nodes))
-                )
-                raise ProcessingError(
-                    f"Couldn't connect to all of cluster nodes: {list(cluster.nodes)}"
-                )
-
-            try:
-                writer.write(packet)
-                send_data = writer.drain()
-                await asyncio.wait_for(send_data, timeout=self.timeout)
-            except (asyncio.TimeoutError, socket.timeout) as err:
-                log.error(
-                    'The connection to %s timed out after %d seconds while trying to send',
-                    active_node,
-                    self.timeout
-                )
-                writer.close()
-                await writer.wait_closed()
-                raise err
-            except (OSError, socket.error) as err:
-                log.warning(
-                    'An error occurred while trying to send to %s: %s',
-                    active_node,
-                    getattr(err, 'msg', str(err))
-                )
-                writer.close()
-                await writer.wait_closed()
-                raise err
-            try:
-                response = await self.__get_response(reader)
-            except (ConnectionResetError, asyncio.exceptions.IncompleteReadError) as err:
-                log.debug('Get value error: %s', err)
-                raise err
-            log.debug('Response from %s: %s', active_node, response)
-
-            if response and response.get('response') != 'success':
-                raise ProcessingError(response) from None
-
+            active_node, response = await self.__send_to_cluster(cluster, packet)
             responses[active_node] = response
-
-            writer.close()
-            await writer.wait_closed()
 
         return responses
 
