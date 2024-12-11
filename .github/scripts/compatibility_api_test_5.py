@@ -147,14 +147,14 @@ class CompatibilitySenderTest(unittest.TestCase):
                 value_type=3
             )['itemids'][0]
 
-        time.sleep(2)
-
         self.assertIsNotNone(hostid, "Creating test item was going wrong")
 
         zapi.logout()
 
     def test_send_values(self):
         """Tests sending item values"""
+
+        time.sleep(10)
 
         items = [
             ItemValue(self.hostname, self.itemkey, 10),
@@ -337,7 +337,7 @@ class CompatibilityAsyncSenderTest(unittest.IsolatedAsyncioTestCase):
     async def test_send_values(self):
         """Tests sending item values"""
 
-        time.sleep(2)
+        time.sleep(10)
 
         items = [
             ItemValue(self.hostname, self.itemkey, 10),
