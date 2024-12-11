@@ -9,7 +9,8 @@ on:
   workflow_dispatch:
 
 env:
-  ZABBIX_BRANCH: master
+  ZABBIX_VERSION: '7.0'
+  ZABBIX_BRANCH: release/$ZABBIX_VERSION
   CONFIG_PATH: .github/configs/
   TEST_FILE: additional_api_tests.py
 
