@@ -25,7 +25,7 @@ async def main():
     # Create an instance of the AsyncZabbixAPI class
     api = AsyncZabbixAPI(ZABBIX_SERVER)
 
-    # Authenticating with Zabbix API using the provided token.
+    # Authenticating with Zabbix API using the provided username and password.
     await api.login(**ZABBIX_AUTH)
 
     # Some actions when your session can be released

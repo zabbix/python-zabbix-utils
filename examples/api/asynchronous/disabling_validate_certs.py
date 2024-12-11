@@ -31,7 +31,7 @@ async def main():
     # Note: Ignoring SSL certificate validation may expose the connection to security risks.
     api = AsyncZabbixAPI(**ZABBIX_PARAMS)
 
-    # Authenticating with Zabbix API using the provided token.
+    # Authenticating with Zabbix API using the provided username and password.
     await api.login(**ZABBIX_AUTH)
 
     # Retrieve a list of users from the Zabbix server, including their user ID and name.
