@@ -135,15 +135,20 @@ class ZabbixAPI():
         self.validate_certs = validate_certs
         self.timeout = timeout
 
+        # HTTP Auth unsupported since Zabbix 7.2
         if http_user and http_password:
             self.__basic_auth(http_user, http_password)
 
         if ssl_context is not None:
             if not isinstance(ssl_context, ssl.SSLContext):
-                raise TypeError('Parameter "ssl_context" must be an "ssl.SSLContext".') from None
+                raise TypeError(
+                    'Parameter "ssl_context" must be an "ssl.SSLContext".') from None
         self.ssl_context = ssl_context
 
         self.__check_version(skip_version_check)
+
+        if self.version > 7.0 and http_user and http_password:
+            raise APINotSupported("HTTP authentication unsupported since Zabbix 7.2.")
 
         if token or user or password:
             self.login(token, user, password)
@@ -320,7 +325,9 @@ class ZabbixAPI():
         if need_auth:
             if not self.__session_id:
                 raise ProcessingError("You're not logged in Zabbix API")
-            if self.version < 6.4 or self.__basic_cred is not None:
+            if self.version < 6.4:
+                request_json['auth'] = self.__session_id
+            elif self.version <= 7.0 and self.__basic_cred is not None:
                 request_json['auth'] = self.__session_id
             else:
                 headers["Authorization"] = f"Bearer {self.__session_id}"

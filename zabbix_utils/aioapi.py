@@ -137,6 +137,7 @@ class AsyncZabbixAPI():
             client_params["connector"] = aiohttp.TCPConnector(
                 ssl=self.validate_certs
             )
+            # HTTP Auth unsupported since Zabbix 7.2
             if http_user and http_password:
                 client_params["auth"] = aiohttp.BasicAuth(
                     login=http_user,
@@ -152,6 +153,10 @@ class AsyncZabbixAPI():
             self.client_session = client_session
 
         self.__check_version(skip_version_check)
+
+        if self.version > 7.0 and http_user and http_password:
+            self.__close_session()
+            raise APINotSupported("HTTP authentication unsupported since Zabbix 7.2.")
 
     def __getattr__(self, name: str) -> Callable:
         """Dynamic creation of an API object.
@@ -171,13 +176,17 @@ class AsyncZabbixAPI():
     async def __aexit__(self, *args) -> None:
         await self.logout()
 
-    async def __close_session(self) -> None:
+    async def __aclose_session(self) -> None:
         if self.__internal_client:
             await self.__internal_client.close()
 
     async def __exception(self, exc) -> None:
-        await self.__close_session()
+        await self.__aclose_session()
         raise exc from exc
+
+    def __close_session(self) -> None:
+        if self.__internal_client:
+            self.__internal_client._connector.close()
 
     def api_version(self) -> APIVersion:
         """Return object of Zabbix API version.
@@ -261,13 +270,13 @@ class AsyncZabbixAPI():
             if self.__use_token:
                 self.__session_id = None
                 self.__use_token = False
-                await self.__close_session()
+                await self.__aclose_session()
                 return
 
             log.debug("Logout from Zabbix API")
             await self.user.logout()
             self.__session_id = None
-            await self.__close_session()
+            await self.__aclose_session()
         else:
             log.debug("You're not logged in Zabbix API")
 
@@ -309,7 +318,9 @@ class AsyncZabbixAPI():
         if need_auth:
             if not self.__session_id:
                 raise ProcessingError("You're not logged in Zabbix API")
-            if self.version < 6.4 or self.client_session._default_auth is not None:
+            if self.version < 6.4:
+                request['auth'] = self.__session_id
+            elif self.version <= 7.0 and self.client_session._default_auth is not None:
                 request['auth'] = self.__session_id
             else:
                 headers["Authorization"] = f"Bearer {self.__session_id}"
@@ -405,6 +416,7 @@ class AsyncZabbixAPI():
 
         request_json, headers = self.__prepare_request(method, params, need_auth)
 
+        # HTTP Auth unsupported since Zabbix 7.2
         basic_auth = self.client_session._default_auth
         if basic_auth is not None:
             headers["Authorization"] = "Basic " + base64.b64encode(
@@ -433,9 +445,16 @@ class AsyncZabbixAPI():
             resp = ul.urlopen(req, context=ctx)
             resp_json = json.loads(resp.read().decode('utf-8'))
         except URLError as err:
+            if basic_auth is not None:
+                log.warning("HTTP authentication unsupported since Zabbix 7.2.")
+            self.__close_session()
             raise ProcessingError(f"Unable to connect to {self.url}:", err) from None
         except ValueError as err:
+            self.__close_session()
             raise ProcessingError("Unable to parse json:", err) from None
+        except Exception as err:
+            self.__close_session()
+            raise ProcessingError(err) from None
 
         return self.__check_response(method, resp_json)
 
