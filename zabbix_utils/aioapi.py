@@ -445,8 +445,6 @@ class AsyncZabbixAPI():
             resp = ul.urlopen(req, context=ctx)
             resp_json = json.loads(resp.read().decode('utf-8'))
         except URLError as err:
-            if basic_auth is not None:
-                log.warning("HTTP authentication unsupported since Zabbix 7.2.")
             self.__close_session()
             raise ProcessingError(f"Unable to connect to {self.url}:", err) from None
         except ValueError as err:
