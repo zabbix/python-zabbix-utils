@@ -1,3 +1,24 @@
+## [2.0.2](https://github.com/zabbix/python-zabbix-utils/compare/v2.0.1...v2.0.2) (2024-12-12)
+
+### Features:
+
+- added support for Zabbix 7.2
+- added support of proxy groups for Sender and AsyncSender
+
+### Changes:
+
+- discontinued support for HTTP authentication for Zabbix 7.2 and newer
+- discontinued support for Zabbix 6.4
+- added examples of deleting items
+- added examples of how to clear item history
+- added examples of how to pass get request parameters
+
+### Bug fixes:
+
+- fixed issue [#21](https://github.com/zabbix/python-zabbix-utils/issues/21) with non-obvious format of ID array passing
+- fixed issue [#26](https://github.com/zabbix/python-zabbix-utils/issues/26) with Sender and AsyncSender working with proxy groups
+- fixed small bugs and flaws
+
 ## [2.0.1](https://github.com/zabbix/python-zabbix-utils/compare/v2.0.0...v2.0.1) (2024-09-18)
 
 ### Features:
