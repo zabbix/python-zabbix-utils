@@ -40,7 +40,7 @@ async def main():
         client_session=client_session
     )
 
-    # Authenticating with Zabbix API using the provided token.
+    # Authenticating with Zabbix API using the provided username and password.
     await api.login(**ZABBIX_AUTH)
 
     # Retrieve a list of hosts from the Zabbix server, including their host ID and name

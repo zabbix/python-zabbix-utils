@@ -4,8 +4,7 @@
 # See the LICENSE file in the project root for more information.
 
 import asyncio
-from zabbix_utils import AsyncZabbixAPI
-
+from zabbix_utils import AsyncZabbixAPI, APIRequestError
 
 # Zabbix server URL or IP address
 ZABBIX_SERVER = "127.0.0.1"
@@ -15,6 +14,9 @@ ZABBIX_AUTH = {
     "user": "Admin",       # Zabbix user name for authentication
     "password": "zabbix"   # Zabbix user password for authentication
 }
+
+# Item IDs to be deleted
+ITEM_IDS = [70060]
 
 
 async def main():
@@ -28,21 +30,16 @@ async def main():
     # Authenticating with Zabbix API using the provided username and password.
     await api.login(**ZABBIX_AUTH)
 
-    # Some actions when your session can be released
-    # For example, api.logout()
+    # Delete items with specified IDs
+    try:
+        await api.item.delete(*ITEM_IDS)
 
-    # Check if authentication is still valid
-    if await api.check_auth():
-        # Retrieve a list of hosts from the Zabbix server, including their host ID and name
-        hosts = await api.host.get(
-            output=['hostid', 'name']
-        )
-
-        # Print the names of the retrieved hosts
-        for host in hosts:
-            print(host['name'])
-
-        # Logout to release the Zabbix API session and close asynchronous connection
+        # Alternative way to do the same (since v2.0.2):
+        # await api.item.delete(ITEM_IDS)
+    except APIRequestError as e:
+        print(f"An error occurred when attempting to delete items: {e}")
+    else:
+        # Logout to release the Zabbix API session
         await api.logout()
 
 # Run the main coroutine

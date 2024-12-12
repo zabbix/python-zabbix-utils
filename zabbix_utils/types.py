@@ -349,7 +349,7 @@ class Cluster():
     """
 
     def __init__(self, addr: list):
-        self.__nodes = self.__parse_ha_node(addr)
+        self.nodes = self.__parse_ha_node(addr)
 
     def __parse_ha_node(self, node_list: list) -> list:
         nodes = []
@@ -363,20 +363,10 @@ class Cluster():
         return nodes
 
     def __str__(self) -> str:
-        return json.dumps([(node.address, node.port) for node in self.__nodes])
+        return json.dumps([(node.address, node.port) for node in self.nodes])
 
     def __repr__(self) -> str:
         return self.__str__()
-
-    @property
-    def nodes(self) -> list:
-        """Returns list of Node objects.
-
-        Returns:
-            list: List of Node objects
-        """
-
-        return self.__nodes
 
 
 class AgentResponse:

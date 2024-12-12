@@ -5,8 +5,6 @@
 
 import asyncio
 from zabbix_utils import AsyncZabbixAPI
-from aiohttp import ClientSession, TCPConnector
-
 
 # Zabbix server URL or IP address
 ZABBIX_SERVER = "127.0.0.1"
@@ -23,34 +21,31 @@ async def main():
     The main function to perform asynchronous tasks.
     """
 
-    # Create an asynchronous client session for HTTP requests
-    client_session = ClientSession(
-        connector=TCPConnector(ssl=False)
-    )
-
     # Create an instance of the AsyncZabbixAPI class
-    api = AsyncZabbixAPI(
-        url=ZABBIX_SERVER,
-        client_session=client_session
-    )
+    api = AsyncZabbixAPI(ZABBIX_SERVER)
 
     # Authenticating with Zabbix API using the provided username and password.
     await api.login(**ZABBIX_AUTH)
 
-    # Retrieve a list of hosts from the Zabbix server, including their host ID and name
-    hosts = await api.host.get(
-        output=['hostid', 'name']
-    )
+    # There are only three ways to pass parameters of type dictionary:
+    #
+    # 1. Specifying values directly with their keys:
+    problems = await api.problem.get(tags=[{"tag": "scope", "value": "notice", "operator": "0"}])
+    #
+    # 2. Unpacking dictionary keys and values using `**`:
+    # request_params = {"tags": [{"tag": "scope", "value": "notice", "operator": "0"}]}
+    # problems = await api.problem.get(**request_params)
+    #
+    # 3. Passing the dictionary directly as an argument (since v2.0.2):
+    # request_params = {"tags": [{"tag": "scope", "value": "notice", "operator": "0"}]}
+    # problems = await api.problem.get(request_params)
 
-    # Print the names of the retrieved hosts
-    for host in hosts:
-        print(host['name'])
+    # Print the names of the retrieved users
+    for problem in problems:
+        print(problem['name'])
 
     # Logout to release the Zabbix API session
     await api.logout()
-
-    # Close asynchronous client session
-    await client_session.close()
 
 # Run the main coroutine
 asyncio.run(main())

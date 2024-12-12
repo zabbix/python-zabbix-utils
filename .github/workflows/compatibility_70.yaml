@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install packages
         run: |
-          sudo apt update && sudo apt install -y git sudo gcc make automake pkg-config postgresql-14 libpostgresql-ocaml-dev libxml2-dev libpcre3-dev libevent-dev apache2 libapache2-mod-php php8.1-pgsql php8.1-bcmath php8.1-xml php8.1-gd php8.1-ldap php8.1-mbstring libzip-dev
+          sudo apt update && sudo apt install -y git sudo gcc make automake pkg-config postgresql-14 libpostgresql-ocaml-dev libxml2-dev libpcre3-dev libevent-dev apache2 libapache2-mod-php php8.1-pgsql php8.1-bcmath php8.1-xml php8.1-gd php8.1-ldap php8.1-mbstring libzip-dev zabbix-sender
       - name: Build from sources
         run: |
           WORKDIR=$(pwd)
@@ -35,6 +35,26 @@ jobs:
           sudo make dbschema_postgresql
           sudo make
           echo -e "CacheUpdateFrequency=1\n" >> ./conf/zabbix_server.conf
+          ./configure --enable-proxy --with-sqlite3
+          sudo make
+          mkdir /tmp/zabbix_proxy1/
+          mkdir /tmp/zabbix_proxy2/
+          cp ./conf/zabbix_proxy.conf ./conf/zabbix_proxy1.conf
+          mv ./conf/zabbix_proxy.conf ./conf/zabbix_proxy2.conf
+          sed -i "s/Hostname=Zabbix proxy/Hostname=CompatibilitySenderTest_proxy1/g" ./conf/zabbix_proxy1.conf
+          sed -i "s/Hostname=Zabbix proxy/Hostname=CompatibilitySenderTest_proxy2/g" ./conf/zabbix_proxy2.conf
+          sed -i "s#LogFile=/tmp/zabbix_proxy.log#LogFile=/tmp/zabbix_proxy1.log#g" ./conf/zabbix_proxy1.conf
+          sed -i "s#LogFile=/tmp/zabbix_proxy.log#LogFile=/tmp/zabbix_proxy2.log#g" ./conf/zabbix_proxy2.conf
+          sed -i 's#DBName=zabbix_proxy#DBName=/tmp/proxy1.db#' ./conf/zabbix_proxy1.conf
+          sed -i 's#DBName=zabbix_proxy#DBName=/tmp/proxy2.db#' ./conf/zabbix_proxy2.conf
+          echo -e "PidFile=/tmp/zabbix_proxy1/zabbix_proxy1.pid\n" >> ./conf/zabbix_proxy1.conf
+          echo -e "PidFile=/tmp/zabbix_proxy2/zabbix_proxy2.pid\n" >> ./conf/zabbix_proxy2.conf
+          echo -e "SocketDir=/tmp/zabbix_proxy1\n" >> ./conf/zabbix_proxy1.conf
+          echo -e "SocketDir=/tmp/zabbix_proxy2\n" >> ./conf/zabbix_proxy2.conf
+          echo -e "ListenPort=10061\n" >> ./conf/zabbix_proxy1.conf
+          echo -e "ListenPort=10062\n" >> ./conf/zabbix_proxy2.conf
+          sudo chown -R zabbix:zabbix /tmp/zabbix_proxy1/
+          sudo chown -R zabbix:zabbix /tmp/zabbix_proxy2/
           cd ui
           sudo rm /var/www/html/index.html
           sudo cp -a . /var/www/html/
@@ -66,6 +86,12 @@ jobs:
         run: |
           cd /tmp/zabbix-branch
           sudo ./src/zabbix_server/zabbix_server -c ./conf/zabbix_server.conf
+      - name: Start Zabbix proxies
+        continue-on-error: true
+        run: |
+          cd /tmp/zabbix-branch
+          sudo ./src/zabbix_proxy/zabbix_proxy -c ./conf/zabbix_proxy1.conf
+          sudo ./src/zabbix_proxy/zabbix_proxy -c ./conf/zabbix_proxy2.conf          
       - name: Start Zabbix agent
         run: |
           cd /tmp/zabbix-branch

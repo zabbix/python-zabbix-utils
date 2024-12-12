@@ -1,5 +1,5 @@
-name: additional_tests
-run-name: Additional tests for API features
+name: depricated_tests
+run-name: Tests for deprecated features
 
 on:
   push:
@@ -9,55 +9,14 @@ on:
   workflow_dispatch:
 
 env:
-  ZABBIX_BRANCH: master
+  ZABBIX_VERSION: '7.0'
+  ZABBIX_BRANCH: release/$ZABBIX_VERSION
   CONFIG_PATH: .github/configs/
-  TEST_FILE: additional_api_tests.py
+  TEST_FILE: depricated_tests.py
 
 jobs:
-  importing-tests:
-    name: Importing tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Python
-        run: |
-          sudo apt update && sudo apt-get install -y python3 python3-pip python-is-python3
-      - name: Prepare environment
-        run: |
-          touch /tmp/importing.log
-      - name: Check import of sync without requirements
-        continue-on-error: true
-        env:
-          TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
-          TBOT_CHAT: ${{ vars.TBOT_CHAT }}
-          SUBJECT: Importing test without requirements FAIL
-        run: |
-          bash ./.github/scripts/library_import_tests.sh "sync" "ZabbixAPI" "Unable to connect to" > /tmp/importing.log
-      - name: Check import of async without requirements
-        continue-on-error: true
-        env:
-          TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
-          TBOT_CHAT: ${{ vars.TBOT_CHAT }}
-          SUBJECT: Importing test without requirements FAIL
-        run: |
-          bash ./.github/scripts/library_import_tests.sh "async" "AsyncZabbixAPI" "ModuleNotFoundError:" > /tmp/importing.log
-      - name: Install requirements
-        run: |
-          pip install -r ./requirements.txt
-      - name: Check import of async with requirements
-        continue-on-error: true
-        env:
-          TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
-          TBOT_CHAT: ${{ vars.TBOT_CHAT }}
-          SUBJECT: Importing tests with requirements FAIL
-        run: |
-          bash ./.github/scripts/library_import_tests.sh "async" "AsyncZabbixAPI" "Unable to connect to" > /tmp/importing.log
-      - name: Raise an exception
-        run: |
-          test $(cat /tmp/importing.log | wc -l) -eq 0 || exit 1
-  additional-tests:
-    name: Additional tests
+  depricated-tests:
+    name: Depricated tests
     runs-on: ubuntu-latest
 
     steps:
@@ -120,11 +79,11 @@ jobs:
         continue-on-error: true
         run: |
           sleep 5
-          python ./.github/scripts/$TEST_FILE 2>/tmp/additional.log >/dev/null
+          python ./.github/scripts/$TEST_FILE 2>/tmp/depricated.log >/dev/null
       - name: Send report
         env:
           TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
           TBOT_CHAT: ${{ vars.TBOT_CHAT }}
-          SUBJECT: Zabbix API additional tests FAIL
+          SUBJECT: Zabbix API depricated tests FAIL
         run: |
-          tail -n1 /tmp/additional.log | grep "OK" 1>/dev/null || tail /tmp/additional.log | python ./.github/scripts/telegram_msg.py | exit 1
+          tail -n1 /tmp/depricated.log | grep "OK" 1>/dev/null || tail /tmp/depricated.log | python ./.github/scripts/telegram_msg.py | exit 1

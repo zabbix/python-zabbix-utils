@@ -5,9 +5,8 @@
 # See the LICENSE file in the project root for more information.
 
 import sys
-import ssl
+import base64
 import unittest
-from aiohttp import ClientSession, TCPConnector
 
 sys.path.append('.')
 from zabbix_utils.api import ZabbixAPI
@@ -17,25 +16,27 @@ from zabbix_utils.aioapi import AsyncZabbixAPI
 ZABBIX_URL = 'https://127.0.0.1:443'
 ZABBIX_USER = 'Admin'
 ZABBIX_PASSWORD = 'zabbix'
+HTTP_USER = 'http_user'
+HTTP_PASSWORD = 'http_pass'
 
 
-class CustomCertAPITest(unittest.TestCase):
-    """Test working with a real Zabbix API instance synchronously"""
+class BasicAuthAPITest(unittest.TestCase):
+    """Test working with a real Zabbix API instance using Basic auth synchronously
+
+    Should be removed after: `June 30, 2029`
+    """
 
     def setUp(self):
         self.user = ZABBIX_USER
         self.password = ZABBIX_PASSWORD
-        self.url = ZABBIX_URL + '/ssl_context/'
-
-        context = ssl.create_default_context()
-        context.load_verify_locations('/etc/nginx/ssl/nginx.crt')
-
+        self.url = ZABBIX_URL + '/http_auth/'
         self.api = ZabbixAPI(
             url=self.url,
             user=self.user,
             password=self.password,
-            skip_version_check=True,
-            ssl_context=context
+            validate_certs=False,
+            http_user=HTTP_USER,
+            http_password=HTTP_PASSWORD
         )
 
     def tearDown(self):
@@ -49,6 +50,14 @@ class CustomCertAPITest(unittest.TestCase):
             type(self.api), ZabbixAPI, "Login was going wrong")
         self.assertEqual(
             type(self.api.api_version()), APIVersion, "Version getting was going wrong")
+
+    def test_basic_auth(self):
+        """Tests __basic_auth function works properly"""
+
+        self.assertEqual(
+            self.api._ZabbixAPI__basic_cred, base64.b64encode(
+                "http_user:http_pass".encode()
+                ).decode(), "Basic auth credentials generation was going wrong")
 
     def test_version_get(self):
         """Tests getting version info works properly"""
@@ -82,24 +91,21 @@ class CustomCertAPITest(unittest.TestCase):
         self.assertEqual(type(users), list, "Request user.get was going wrong")
 
 
-class CustomCertAsyncAPITest(unittest.IsolatedAsyncioTestCase):
-    """Test working with a real Zabbix API instance asynchronously"""
+class BasicAuthAsyncAPITest(unittest.IsolatedAsyncioTestCase):
+    """Test working with a real Zabbix API instance using Basic auth asynchronously
+    
+    Should be removed after: `June 30, 2029`
+    """
 
     async def asyncSetUp(self):
         self.user = ZABBIX_USER
         self.password = ZABBIX_PASSWORD
-        self.url = ZABBIX_URL + '/ssl_context/'
-
-        context = ssl.create_default_context()
-        context.load_verify_locations('/etc/nginx/ssl/nginx.crt')
-        self.session = ClientSession(
-            connector=TCPConnector(ssl=context)
-        )
-
+        self.url = ZABBIX_URL + '/http_auth/'
         self.api = AsyncZabbixAPI(
             url=self.url,
-            skip_version_check=True,
-            client_session=self.session
+            validate_certs=False,
+            http_user=HTTP_USER,
+            http_password=HTTP_PASSWORD
         )
         await self.api.login(
             user=self.user,
@@ -109,8 +115,6 @@ class CustomCertAsyncAPITest(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         if self.api:
             await self.api.logout()
-        if not self.session.closed:
-            await self.session.close()
 
     async def test_login(self):
         """Tests login function works properly"""
@@ -119,6 +123,17 @@ class CustomCertAsyncAPITest(unittest.IsolatedAsyncioTestCase):
             type(self.api), AsyncZabbixAPI, "Login was going wrong")
         self.assertEqual(
             type(self.api.api_version()), APIVersion, "Version getting was going wrong")
+
+    async def test_basic_auth(self):
+        """Tests __basic_auth function works properly"""
+
+        basic_auth = self.api.client_session._default_auth
+
+        self.assertEqual(
+            base64.b64encode(f"{basic_auth.login}:{basic_auth.password}".encode()).decode(),
+            base64.b64encode(f"{HTTP_USER}:{HTTP_PASSWORD}".encode()).decode(),
+            "Basic auth credentials generation was going wrong"
+        )
 
     async def test_version_get(self):
         """Tests getting version info works properly"""
@@ -150,6 +165,7 @@ class CustomCertAsyncAPITest(unittest.IsolatedAsyncioTestCase):
                 output=['userid', 'name']
             )
         self.assertEqual(type(users), list, "Request user.get was going wrong")
+
 
 if __name__ == '__main__':
     unittest.main()
