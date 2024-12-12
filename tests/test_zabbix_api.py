@@ -50,10 +50,13 @@ class TestZabbixAPI(unittest.TestCase):
             ul,
             urlopen=mock_urlopen):
             
-            zapi = ZabbixAPI(
-                http_user=DEFAULT_VALUES['user'],
-                http_password=DEFAULT_VALUES['password']
-            )
+            with self.assertRaises(APINotSupported,
+                                   msg="expected APINotSupported exception hasn't been raised"):
+                ZabbixAPI(
+                    http_user=DEFAULT_VALUES['user'],
+                    http_password=DEFAULT_VALUES['password']
+                )
+            zapi = ZabbixAPI()
             with self.assertRaises(ProcessingError,
                                    msg="expected ProcessingError exception hasn't been raised"):
                 zapi.hosts.get()
@@ -160,7 +163,9 @@ class TestZabbixAPI(unittest.TestCase):
                     ZabbixAPI,
                     send_api_request=common.mock_send_sync_request):
                 
-                zapi = ZabbixAPI(http_user=DEFAULT_VALUES['user'], http_password=DEFAULT_VALUES['password'])
+                with self.assertRaises(APINotSupported, msg="expected APINotSupported exception hasn't been raised"):
+                    ZabbixAPI(http_user=DEFAULT_VALUES['user'], http_password=DEFAULT_VALUES['password'])
+                zapi = ZabbixAPI()
                 
                 with self.assertRaises(TypeError, msg="expected TypeError exception hasn't been raised"):
                     zapi = ZabbixAPI()

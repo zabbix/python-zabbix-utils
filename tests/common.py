@@ -81,6 +81,9 @@ class MockBasicAuth():
 class MockSessionConn():
     def __init__(self):
         self._ssl = None
+        self.closed = False
+    def close(self):
+        self.closed = True
 
 class MockSession():
     def __init__(self, exception=None):

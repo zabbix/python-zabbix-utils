@@ -289,8 +289,10 @@ class TestAsyncZabbixAPI(unittest.IsolatedAsyncioTestCase):
                 params={'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
                 need_auth=True
             )
-            self.assertEqual(req.get('auth'), DEFAULT_VALUES['token'],
-                             "unexpected auth request parameter, must be: " + DEFAULT_VALUES['token'])
+            self.assertEqual(req.get('auth'), None,
+                             "unexpected auth request parameter, must be: None")
+            self.assertEqual(headers.get('Authorization'), 'Bearer ' + DEFAULT_VALUES['token'],
+                             "unexpected Authorization header, must be: Bearer " + DEFAULT_VALUES['token'])
             self.zapi.client_session.del_auth()
             await self.zapi.logout()
             
