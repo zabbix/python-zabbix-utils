@@ -26,10 +26,10 @@ jobs:
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
           key: ${{ runner.os }}-pip
-      - name: Install build requirements
+      - name: Install python requirements
         run: |
           python -m pip install --upgrade pip
-          pip install setuptools wheel
+          pip install setuptools wheel markdown
       - name: Set version env
         run: |
           echo "LIBRARY_VERSION=$(python -c "import sys; sys.path.append('.'); from zabbix_utils.version import __version__; print(__version__)")" >> $GITHUB_ENV
