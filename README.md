@@ -7,8 +7,8 @@
 
 [![Zabbix 5.0](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_50.yaml/badge.svg)](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_50.yaml)
 [![Zabbix 6.0](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_60.yaml/badge.svg)](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_60.yaml)
-[![Zabbix 6.4](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_64.yaml/badge.svg)](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_64.yaml)
 [![Zabbix 7.0](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_70.yaml/badge.svg)](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_70.yaml)
+[![Zabbix 7.2](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_72.yaml/badge.svg)](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_72.yaml)
 
 **zabbix_utils** is a Python library for working with [Zabbix API](https://www.zabbix.com/documentation/current/manual/api/reference) as well as with [Zabbix sender](https://www.zabbix.com/documentation/current/manpages/zabbix_sender) and [Zabbix get](https://www.zabbix.com/documentation/current/manpages/zabbix_get) protocols.
 
@@ -29,7 +29,7 @@ Supported versions:
 
 Tested on:
 
-* Zabbix 5.0, 6.0, 6.4 and 7.0
+* Zabbix 5.0, 6.0, 7.0 and 7.2
 * Python 3.8, 3.9, 3.10, 3.11 and 3.12
 
 Dependencies:

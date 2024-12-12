@@ -25,4 +25,4 @@
 __version__ = "2.0.1"
 
 __min_supported__ = 5.0
-__max_supported__ = 7.0
+__max_supported__ = 7.2
