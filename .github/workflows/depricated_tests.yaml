@@ -17,10 +17,10 @@ env:
 jobs:
   depricated-tests:
     name: Depricated tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - name: Install packages
         run: |
           sudo apt update && sudo apt install -y git sudo nginx gcc make automake pkg-config postgresql-14 libpostgresql-ocaml-dev libxml2-dev libpcre3-dev libevent-dev apache2 libapache2-mod-php php8.1-pgsql php8.1-bcmath php8.1-xml php8.1-gd php8.1-ldap php8.1-mbstring libzip-dev
