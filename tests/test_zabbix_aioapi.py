@@ -375,37 +375,43 @@ class TestAsyncZabbixAPI(unittest.IsolatedAsyncioTestCase):
         test_cases = [
             {
                 'input': {'token': DEFAULT_VALUES['token']},
-                'version': '5.2.0',
-                'raised': {'APINotSupported': True, 'ProcessingError': True},
+                'version': '5.0.0',
+                'raised': {'APINotSupported': True, 'ProcessingError': False},
                 'output': DEFAULT_VALUES['session']
             },
             {
+                'input': {'token': DEFAULT_VALUES['token']},
+                'version': '6.0.1',
+                'raised': {'APINotSupported': False, 'ProcessingError': False},
+                'output': DEFAULT_VALUES['token']
+            },
+            {
                 'input': {'token': DEFAULT_VALUES['token'], 'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
-                'version': '5.2.0',
+                'version': '6.0.2',
                 'raised': {'APINotSupported': True, 'ProcessingError': True},
                 'output': DEFAULT_VALUES['session']
             },
             {
                 'input': {'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
-                'version': '5.2.0',
+                'version': '6.0.3',
                 'raised': {'APINotSupported': False, 'ProcessingError': False},
                 'output': DEFAULT_VALUES['session']
             },
             {
                 'input': {'token': DEFAULT_VALUES['token']},
-                'version': '5.4.0',
+                'version': '7.4.1',
                 'raised': {'APINotSupported': False, 'ProcessingError': False},
                 'output': DEFAULT_VALUES['token']
             },
             {
                 'input': {'token': DEFAULT_VALUES['token'], 'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
-                'version': '5.4.0',
+                'version': '7.4.2',
                 'raised': {'APINotSupported': False, 'ProcessingError': True},
                 'output': DEFAULT_VALUES['token']
             },
             {
                 'input': {'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
-                'version': '5.4.0',
+                'version': '7.4.3',
                 'raised': {'APINotSupported': False, 'ProcessingError': False},
                 'output': DEFAULT_VALUES['session']
             }

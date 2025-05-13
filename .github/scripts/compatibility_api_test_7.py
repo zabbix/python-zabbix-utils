@@ -25,7 +25,7 @@ ZABBIX_PROXY_ADDR = '127.0.0.1'
 
 
 class CompatibilityAPITest(unittest.TestCase):
-    """Compatibility synchronous test with Zabbix API version 7.0, 7.2"""
+    """Compatibility synchronous test with Zabbix API version 7.0, 7.2 and 7.4"""
 
     def setUp(self):
         self.url = ZABBIX_URL
@@ -111,7 +111,7 @@ class CompatibilityAPITest(unittest.TestCase):
 
 
 class CompatibilitySenderTest(unittest.TestCase):
-    """Compatibility synchronous test with Zabbix sender version 7.0, 7.2"""
+    """Compatibility synchronous test with Zabbix sender version 7.0, 7.2 and 7.4"""
 
     def setUp(self):
         self.ip = ZABBIX_URL
@@ -286,7 +286,7 @@ class CompatibilitySenderTest(unittest.TestCase):
 
 
 class CompatibilityGetTest(unittest.TestCase):
-    """Compatibility synchronous test with Zabbix get version 7.0, 7.2"""
+    """Compatibility synchronous test with Zabbix get version 7.0, 7.2 and 7.4"""
 
     def setUp(self):
         self.host = ZABBIX_URL
@@ -307,7 +307,7 @@ class CompatibilityGetTest(unittest.TestCase):
 
 
 class CompatibilityAsyncAPITest(unittest.IsolatedAsyncioTestCase):
-    """Compatibility asynchronous test with Zabbix API version 7.0, 7.2"""
+    """Compatibility asynchronous test with Zabbix API version 7.0, 7.2 and 7.4"""
 
     async def asyncSetUp(self):
         self.url = ZABBIX_URL
@@ -399,7 +399,7 @@ class CompatibilityAsyncAPITest(unittest.IsolatedAsyncioTestCase):
 
 
 class CompatibilityAsyncSenderTest(unittest.IsolatedAsyncioTestCase):
-    """Compatibility asynchronous test with Zabbix sender version 7.0, 7.2"""
+    """Compatibility asynchronous test with Zabbix sender version 7.0, 7.2 and 7.4"""
 
     async def asyncSetUp(self):
         self.ip = ZABBIX_URL
@@ -580,7 +580,7 @@ class CompatibilityAsyncSenderTest(unittest.IsolatedAsyncioTestCase):
 
 
 class CompatibilityAsyncGetTest(unittest.IsolatedAsyncioTestCase):
-    """Compatibility asynchronous test with Zabbix get version 7.0, 7.2"""
+    """Compatibility asynchronous test with Zabbix get version 7.0, 7.2 and 7.4"""
 
     async def asyncSetUp(self):
         self.host = ZABBIX_URL
