@@ -164,21 +164,32 @@ class TestAsyncZabbixAPI(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(self.zapi._AsyncZabbixAPI__session_id, case['output'],
                                      f"unexpected output with input data: {case['input']}")
                     await self.zapi.logout()
-                    
-                async with AsyncZabbixAPI(client_session=common.MockSession()) as zapi:
-                    try:
-                        await zapi.login(**case['input'])
-                    except case['exception']:
-                        if not case['raised']:
-                            self.fail(f"raised unexpected Exception with input data: {case['input']}")
-                    else:
-                        if case['raised']:
-                            self.fail(f"not raised expected Exception with input data: {case['input']}")
 
+                try:
+                    zapi = await AsyncZabbixAPI(client_session=common.MockSession(), **case['input'])
+                    self.assertEqual(zapi._AsyncZabbixAPI__use_token, bool(case['input'].get('token')),
+                                     f"unexpected output with input data: {case['input']}")
+                    self.assertEqual(zapi._AsyncZabbixAPI__session_id, case['output'],
+                                     f"unexpected output with input data: {case['input']}")
+                except case['exception']:
+                    if not case['raised']:
+                        self.fail(f"raised unexpected Exception with input data: {case['input']}")
+                else:
+                    if case['raised']:
+                        self.fail(f"not raised expected Exception with input data: {case['input']}")
+
+                try:
+                    async with AsyncZabbixAPI(client_session=common.MockSession(), **case['input']) as zapi:
                         self.assertEqual(zapi._AsyncZabbixAPI__use_token, bool(case['input'].get('token')),
                                         f"unexpected output with input data: {case['input']}")
                         self.assertEqual(zapi._AsyncZabbixAPI__session_id, case['output'],
                                         f"unexpected output with input data: {case['input']}")
+                except case['exception']:
+                    if not case['raised']:
+                        self.fail(f"raised unexpected Exception with input data: {case['input']}")
+                else:
+                    if case['raised']:
+                        self.fail(f"not raised expected Exception with input data: {case['input']}")
 
     async def test_logout(self):
         """Tests logout in different auth cases"""
