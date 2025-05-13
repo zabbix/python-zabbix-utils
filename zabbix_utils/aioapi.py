@@ -182,7 +182,7 @@ class AsyncZabbixAPI():
 
     async def __exception(self, exc) -> None:
         await self.__aclose_session()
-        raise exc from exc
+        raise exc
 
     def __close_session(self) -> None:
         if self.__internal_client:
