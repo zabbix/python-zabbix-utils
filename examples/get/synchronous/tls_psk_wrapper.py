@@ -7,15 +7,7 @@ import ssl
 from zabbix_utils import Getter
 
 # !!! IMPORTANT
-# The following code example is supposed to be used with Python up to the 3.12 version.
-# Starting with Python 3.13, TLS-PSK is supported by the built-in ssl module.
-
-# Try importing sslpsk3, fall back to sslpsk2 if not available
-try:
-    import sslpsk3 as sslpsk
-except ImportError:
-    # Import sslpsk2 if sslpsk3 is not available
-    import sslpsk2 as sslpsk
+# The code example below is supported only from Python version 3.13 onwards.
 
 # Zabbix agent parameters
 ZABBIX_AGENT = "127.0.0.1"
@@ -28,13 +20,26 @@ def psk_wrapper(sock):
     psk = bytes.fromhex('608b0a0049d41fdb35a824ef0a227f24e5099c60aa935e803370a961c937d6f7')
     psk_identity = b'PSKID'
 
-    # Wrap the socket using sslpsk to establish an SSL connection with PSK
-    return sslpsk.wrap_socket(
-        sock,
-        ssl_version=ssl.PROTOCOL_TLSv1_2,
-        ciphers='ECDHE-PSK-AES128-CBC-SHA256',
-        psk=(psk, psk_identity)
-    )
+    # Create an SSL context for TLS client
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+
+    # Disable hostname verification
+    context.check_hostname = False
+
+    # Set the verification mode to require a valid certificate
+    context.verify_mode = ssl.CERT_NONE
+
+    # Set the maximum allowed version of the TLS protocol to TLS 1.2
+    context.maximum_version = ssl.TLSVersion.TLSv1_2
+
+    # Set the ciphers to use for the connection
+    context.set_ciphers('PSK')
+
+    # Set up the callback function to provide the PSK and identity when requested
+    context.set_psk_client_callback(lambda hint: (psk_identity, psk))
+
+    # Wrap the socket to establish an SSL connection with PSK
+    return context.wrap_socket(sock)
 
 
 # Create a Getter instance with PSK support
