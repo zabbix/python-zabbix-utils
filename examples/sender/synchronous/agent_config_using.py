@@ -15,7 +15,7 @@ sender = Sender(use_config=True, config_path='/etc/zabbix/zabbix_agent2.conf')
 
 # Send a value to a Zabbix server/proxy with specified parameters
 # Parameters: (host, key, value, clock)
-response = sender.send_value('host', 'item.key', 'value', 1695713666)
+response = sender.send_value(sender.host, 'item.key', 'value', 1695713666)
 
 # Check if the value sending was successful
 if response.failed == 0:
