@@ -34,7 +34,7 @@ from textwrap import shorten
 from os import environ as env
 
 from urllib.error import URLError
-from typing import Callable, Union, Optional, Any
+from typing import Callable, Union, Optional, Coroutine, Any
 from aiohttp.client_exceptions import ContentTypeError
 
 from .types import APIVersion
@@ -120,7 +120,8 @@ class AsyncZabbixAPI():
     __session_id = None
     __internal_client = None
 
-    def __init__(self, url: Optional[str] = None,
+    def __init__(self, url: Optional[str] = None, token: Optional[str] = None,
+                 user: Optional[str] = None, password: Optional[str] = None,
                  http_user: Optional[str] = None, http_password: Optional[str] = None,
                  skip_version_check: bool = False, validate_certs: bool = True,
                  client_session: Optional[aiohttp.ClientSession] = None, timeout: int = 30):
@@ -130,6 +131,10 @@ class AsyncZabbixAPI():
         self.url = ModuleUtils.check_url(url)
         self.validate_certs = validate_certs
         self.timeout = timeout
+
+        self.__token = token
+        self.__user = user
+        self.__password = password
 
         client_params: dict = {}
 
@@ -171,10 +176,13 @@ class AsyncZabbixAPI():
         return APIObject(name, self)
 
     async def __aenter__(self) -> Callable:
-        return self
+        return await self.login()
 
     async def __aexit__(self, *args) -> None:
         await self.logout()
+
+    def __await__(self) -> Coroutine:
+        return self.login().__await__()
 
     async def __aclose_session(self) -> None:
         if self.__internal_client:
@@ -182,7 +190,7 @@ class AsyncZabbixAPI():
 
     async def __exception(self, exc) -> None:
         await self.__aclose_session()
-        raise exc from exc
+        raise exc
 
     def __close_session(self) -> None:
         if self.__internal_client:
@@ -212,7 +220,7 @@ class AsyncZabbixAPI():
         return self.api_version()
 
     async def login(self, token: Optional[str] = None, user: Optional[str] = None,
-                    password: Optional[str] = None) -> None:
+                    password: Optional[str] = None) -> Callable:
         """Login to Zabbix API.
 
         Args:
@@ -221,9 +229,9 @@ class AsyncZabbixAPI():
             password (str, optional): Zabbix API user's password. Defaults to `None`.
         """
 
-        user = user or env.get('ZABBIX_USER') or None
-        password = password or env.get('ZABBIX_PASSWORD') or None
-        token = token or env.get('ZABBIX_TOKEN') or None
+        token = token or self.__token or env.get('ZABBIX_TOKEN') or None
+        user = user or self.__user or env.get('ZABBIX_USER') or None
+        password = password or self.__password or env.get('ZABBIX_PASSWORD') or None
 
         if token:
             if self.version < 5.4:
@@ -237,7 +245,7 @@ class AsyncZabbixAPI():
                 )
             self.__use_token = True
             self.__session_id = token
-            return
+            return self
 
         if not user:
             await self.__exception(ProcessingError("Username is missing"))
@@ -262,6 +270,8 @@ class AsyncZabbixAPI():
         self.__session_id = await self.user.login(**user_cred)
 
         log.debug("Connected to Zabbix API version %s: %s", self.version, self.url)
+
+        return self
 
     async def logout(self) -> None:
         """Logout from Zabbix API."""

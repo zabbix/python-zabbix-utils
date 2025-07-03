@@ -164,21 +164,32 @@ class TestAsyncZabbixAPI(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(self.zapi._AsyncZabbixAPI__session_id, case['output'],
                                      f"unexpected output with input data: {case['input']}")
                     await self.zapi.logout()
-                    
-                async with AsyncZabbixAPI(client_session=common.MockSession()) as zapi:
-                    try:
-                        await zapi.login(**case['input'])
-                    except case['exception']:
-                        if not case['raised']:
-                            self.fail(f"raised unexpected Exception with input data: {case['input']}")
-                    else:
-                        if case['raised']:
-                            self.fail(f"not raised expected Exception with input data: {case['input']}")
 
+                try:
+                    zapi = await AsyncZabbixAPI(client_session=common.MockSession(), **case['input'])
+                    self.assertEqual(zapi._AsyncZabbixAPI__use_token, bool(case['input'].get('token')),
+                                     f"unexpected output with input data: {case['input']}")
+                    self.assertEqual(zapi._AsyncZabbixAPI__session_id, case['output'],
+                                     f"unexpected output with input data: {case['input']}")
+                except case['exception']:
+                    if not case['raised']:
+                        self.fail(f"raised unexpected Exception with input data: {case['input']}")
+                else:
+                    if case['raised']:
+                        self.fail(f"not raised expected Exception with input data: {case['input']}")
+
+                try:
+                    async with AsyncZabbixAPI(client_session=common.MockSession(), **case['input']) as zapi:
                         self.assertEqual(zapi._AsyncZabbixAPI__use_token, bool(case['input'].get('token')),
                                         f"unexpected output with input data: {case['input']}")
                         self.assertEqual(zapi._AsyncZabbixAPI__session_id, case['output'],
                                         f"unexpected output with input data: {case['input']}")
+                except case['exception']:
+                    if not case['raised']:
+                        self.fail(f"raised unexpected Exception with input data: {case['input']}")
+                else:
+                    if case['raised']:
+                        self.fail(f"not raised expected Exception with input data: {case['input']}")
 
     async def test_logout(self):
         """Tests logout in different auth cases"""
@@ -375,37 +386,43 @@ class TestAsyncZabbixAPI(unittest.IsolatedAsyncioTestCase):
         test_cases = [
             {
                 'input': {'token': DEFAULT_VALUES['token']},
-                'version': '5.2.0',
-                'raised': {'APINotSupported': True, 'ProcessingError': True},
+                'version': '5.0.0',
+                'raised': {'APINotSupported': True, 'ProcessingError': False},
                 'output': DEFAULT_VALUES['session']
             },
             {
+                'input': {'token': DEFAULT_VALUES['token']},
+                'version': '6.0.1',
+                'raised': {'APINotSupported': False, 'ProcessingError': False},
+                'output': DEFAULT_VALUES['token']
+            },
+            {
                 'input': {'token': DEFAULT_VALUES['token'], 'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
-                'version': '5.2.0',
+                'version': '6.0.2',
                 'raised': {'APINotSupported': True, 'ProcessingError': True},
                 'output': DEFAULT_VALUES['session']
             },
             {
                 'input': {'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
-                'version': '5.2.0',
+                'version': '6.0.3',
                 'raised': {'APINotSupported': False, 'ProcessingError': False},
                 'output': DEFAULT_VALUES['session']
             },
             {
                 'input': {'token': DEFAULT_VALUES['token']},
-                'version': '5.4.0',
+                'version': '7.4.1',
                 'raised': {'APINotSupported': False, 'ProcessingError': False},
                 'output': DEFAULT_VALUES['token']
             },
             {
                 'input': {'token': DEFAULT_VALUES['token'], 'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
-                'version': '5.4.0',
+                'version': '7.4.2',
                 'raised': {'APINotSupported': False, 'ProcessingError': True},
                 'output': DEFAULT_VALUES['token']
             },
             {
                 'input': {'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
-                'version': '5.4.0',
+                'version': '7.4.3',
                 'raised': {'APINotSupported': False, 'ProcessingError': False},
                 'output': DEFAULT_VALUES['session']
             }

@@ -1,3 +1,22 @@
+## [2.0.3](https://github.com/zabbix/python-zabbix-utils/compare/v2.0.2...v2.0.3) (2025-07-03)
+
+### Features:
+
+- added support for Zabbix 7.4
+
+### Changes:
+
+- discontinued support for Zabbix 5.0
+- added examples of TLS-PSK use for Python 3.13+
+
+### Bug fixes:
+
+- fixed issue [#32](https://github.com/zabbix/python-zabbix-utils/issues/32) with a circular reference of exceptions
+- fixed issue [#30](https://github.com/zabbix/python-zabbix-utils/issues/30) by adding Hostname support to Sender and AsyncSender
+- fixed issue [#18](https://github.com/zabbix/python-zabbix-utils/issues/18) by adding with-statement support to AsyncZabbixAPI
+- fixed issue [#7](https://github.com/zabbix/python-zabbix-utils/issues/7) with the TLS-PSK example code for Python 3.13+ by using built-in SSL features
+- fixed small bugs and flaws
+
 ## [2.0.2](https://github.com/zabbix/python-zabbix-utils/compare/v2.0.1...v2.0.2) (2024-12-12)
 
 ### Features:

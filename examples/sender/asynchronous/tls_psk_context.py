@@ -7,35 +7,39 @@ import ssl
 import asyncio
 from zabbix_utils import AsyncSender
 
+# !!! IMPORTANT
+# The code example below is supported only from Python version 3.13 onwards.
+
 # Zabbix server details
 ZABBIX_SERVER = "zabbix-server.example.com"
 ZABBIX_PORT = 10051
 
+# Pre-Shared Key (PSK) and PSK Identity
+PSK_KEY = bytes.fromhex('608b0a0049d41fdb35a824ef0a227f24e5099c60aa935e803370a961c937d6f7')
+PSK_IDENTITY = b'PSKID'
+
 
 # Create and configure an SSL context for secure communication with the Zabbix server.
-def custom_context(config) -> ssl.SSLContext:
-
-    # Try to get paths to certificate and key files
-    ca_path = config.get('tlscafile')
-    cert_path = config.get('tlscertfile')
-    key_path = config.get('tlskeyfile')
-
+def custom_context(*args, **kwargs) -> ssl.SSLContext:
     # Create an SSL context for TLS client
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-
-    # Load the client certificate and private key
-    context.load_cert_chain(cert_path, keyfile=key_path)
-
-    # Load the certificate authority bundle file
-    context.load_verify_locations(cafile=ca_path)
 
     # Disable hostname verification
     context.check_hostname = False
 
     # Set the verification mode to require a valid certificate
-    context.verify_mode = ssl.VerifyMode.CERT_REQUIRED
+    context.verify_mode = ssl.CERT_NONE
 
-    # Return created context
+    # Set the maximum allowed version of the TLS protocol to TLS 1.2
+    context.maximum_version = ssl.TLSVersion.TLSv1_2
+
+    # Set the ciphers to use for the connection
+    context.set_ciphers('PSK')
+
+    # Set up the callback function to provide the PSK and identity when requested
+    context.set_psk_client_callback(lambda hint: (PSK_IDENTITY, PSK_KEY))
+
+    # Return the customized SSL context
     return context
 
 
@@ -44,11 +48,10 @@ async def main():
     The main function to perform asynchronous tasks.
     """
 
-    # Create an instance of AsyncSender with SSL context
+    # Create an instance of AsyncSender with a custom SSL context
     sender = AsyncSender(
         server=ZABBIX_SERVER,
         port=ZABBIX_PORT,
-        use_config=True,
         ssl_context=custom_context
     )
 

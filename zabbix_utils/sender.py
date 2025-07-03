@@ -66,6 +66,7 @@ class Sender():
         self.use_ipv6 = use_ipv6
         self.tls = {}
 
+        self.host = None
         self.source_ip = None
         self.chunk_size = chunk_size
         self.compression = compression
@@ -102,6 +103,7 @@ class Sender():
         for cluster in server_row.split(','):
             self.clusters.append(Cluster(cluster.strip().split(';')))
 
+        self.host = config.get('Hostname')
         if 'SourceIP' in config:
             self.source_ip = config.get('SourceIP')
 
@@ -218,7 +220,6 @@ class Sender():
 
         if response and response.get('response') != 'success':
             if response.get('redirect'):
-                print(response)
                 log.debug(
                     'Packet was redirected from %s to %s. Proxy group revision: %s.',
                     active_node,
@@ -312,4 +313,4 @@ It must be a list of ItemValue objects: {json.dumps(chunk)}")
             TrapperResponse: Response from Zabbix server/proxy.
         """
 
-        return self.send([ItemValue(host, key, value, clock, ns)])
+        return self.send([ItemValue(host or self.host or '', key, value, clock, ns)])

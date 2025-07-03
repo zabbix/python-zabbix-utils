@@ -22,7 +22,7 @@ async def main():
 
     # Send a value to a Zabbix server/proxy with specified parameters
     # Parameters: (host, key, value, clock)
-    response = await sender.send_value('host', 'item.key', 'value', 1695713666)
+    response = await sender.send_value(sender.host, 'item.key', 'value', 1695713666)
 
     # Check if the value sending was successful
     if response.failed == 0:
