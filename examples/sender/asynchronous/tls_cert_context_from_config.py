@@ -48,6 +48,7 @@ async def main():
     sender = AsyncSender(
         server=ZABBIX_SERVER,
         port=ZABBIX_PORT,
+        use_config=True,
         ssl_context=custom_context
     )
 
