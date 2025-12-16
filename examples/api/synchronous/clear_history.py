@@ -13,16 +13,16 @@ ZABBIX_AUTH = {
 }
 
 # IDs of items for which the history should be cleared
-ITEM_IDS = [70060]
+ITEM_IDS = [70060, 70061, 70062]
 
 # Create an instance of the ZabbixAPI class with the specified authentication details
 api = ZabbixAPI(**ZABBIX_AUTH)
 
 # Clear history for items with specified IDs
 try:
-    api.history.clear(*ITEM_IDS)
+    api.history.clear(ITEM_IDS)
 
-    # Alternative way to do the same (since v2.0.2):
+    # A way to do the same for versions prior to v2.0.2:
     # api.history.clear(*ITEM_IDS)
 except APIRequestError as e:
     print(f"An error occurred when attempting to clear items' history: {e}")
