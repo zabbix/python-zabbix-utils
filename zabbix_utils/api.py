@@ -348,7 +348,6 @@ class ZabbixAPI():
             method='POST'
         )
 
-
         # Disable SSL certificate validation if needed.
         if not self.validate_certs:
             ctx = ssl.create_default_context()
@@ -360,10 +359,7 @@ class ZabbixAPI():
             ctx = None
 
         try:
-            if self.timeout:
-                resp = ul.urlopen(req, context=ctx, timeout=self.timeout)
-            else:
-                resp = ul.urlopen(req, context=ctx)
+            resp = ul.urlopen(req, context=ctx, timeout=self.timeout)
             resp_json = json.loads(resp.read().decode('utf-8'))
         except URLError as err:
             raise ProcessingError(f"Unable to connect to {self.url}:", err) from None
