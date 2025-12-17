@@ -12,18 +12,34 @@ ZABBIX_AUTH = {
     "password": "zabbix"   # Zabbix user password for authentication
 }
 
-# IDs of items for which the history should be cleared
-ITEM_IDS = [70060, 70061, 70062]
+# IDs and values of items to push
+ITEM_VALUES = [
+    {
+        "itemid": 70060,
+        "value": 55
+    },
+    {
+        "itemid": 70061,
+        "value": 1.8,
+        "clock": 1690891294,
+        "ns": 45440940
+    },
+    {
+        "itemid": 70062,
+        "value": 123,
+        "clock": 1690891295
+    }
+]
 
 # Create an instance of the ZabbixAPI class with the specified authentication details
 api = ZabbixAPI(**ZABBIX_AUTH)
 
-# Clear history for items with specified IDs
+# Push history for the list of item IDs and values
 try:
-    api.history.clear(ITEM_IDS)
+    api.history.push(ITEM_VALUES)
 
     # A way to do the same for versions prior to v2.0.2:
-    # api.history.clear(*ITEM_IDS)
+    # api.history.push(*ITEM_VALUES)
 except APIRequestError as e:
     print(f"An error occurred when attempting to clear items' history: {e}")
 
