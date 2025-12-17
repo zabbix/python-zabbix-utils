@@ -1,3 +1,15 @@
+## [2.0.4](https://github.com/zabbix/python-zabbix-utils/compare/v2.0.3...v2.0.4) (2025-12-17)
+
+### Changes:
+
+- added examples of how to push item history
+- updated examples of how to clear item history
+
+### Bug fixes:
+
+- fixed issue [#34](https://github.com/zabbix/python-zabbix-utils/issues/34) with timeout ignorance
+- fixed small bugs and flaws
+
 ## [2.0.3](https://github.com/zabbix/python-zabbix-utils/compare/v2.0.2...v2.0.3) (2025-07-03)
 
 ### Features:
