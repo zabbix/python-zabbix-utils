@@ -9,10 +9,10 @@
 # merge, publish, distribute, sublicense, and/or sell copies
 # of the Software, and to permit persons to whom the Software
 # is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
-
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 # EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 # OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -73,14 +73,14 @@ class Getter():
 
         return result
 
-    def get(self, key: str) -> Union[str, None]:
+    def get(self, key: Union[bytes, str, list, dict]) -> AgentResponse:
         """Gets item value from Zabbix agent by specified key.
 
         Args:
-            key (str): Zabbix item key.
+            key (bytes|str|list|dict): Zabbix item key or protocol payload.
 
         Returns:
-            str: Value from Zabbix agent for specified key.
+            AgentResponse: Response from the Zabbix agent.
         """
 
         packet = ZabbixProtocol.create_packet(key, log)
