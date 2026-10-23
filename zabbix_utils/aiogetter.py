@@ -49,7 +49,7 @@ class AsyncGetter():
 
         source_ip (str, optional): IP from which to establish connection. Defaults to `None`.
 
-        ssl_context (Callable, optional): Func(), returned prepared ssl.SSLContext. \
+        ssl_context (Callable, optional): Func(), returning prepared ssl.SSLContext. \
 Defaults to `None`.
     """
 

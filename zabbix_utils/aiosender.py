@@ -52,7 +52,7 @@ class AsyncSender():
         source_ip (str, optional): IP from which to establish connection. Defaults to `None`.
         chunk_size (int, optional): Number of packets in one chunk. Defaults to `250`.
         clusters (tuple|list, optional): List of Zabbix clusters. Defaults to `None`.
-        ssl_context (Callable, optional): Func(`tls`), returned prepared ssl.SSLContext. \
+        ssl_context (Callable, optional): Func(`tls`), returning prepared ssl.SSLContext. \
 Defaults to `None`.
         compression (bool, optional): Specifying compression use. Defaults to `False`.
         config_path (str, optional): Path to Zabbix agent configuration file. Defaults to \
