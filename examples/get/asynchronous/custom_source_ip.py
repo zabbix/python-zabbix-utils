@@ -12,7 +12,7 @@ async def main():
     The main function to perform asynchronous tasks.
     """
 
-    # Create a AsyncGetter instance with specified parameters
+    # Create an AsyncGetter instance with specified parameters
     # Parameters: (host, port, source_ip)
     agent = AsyncGetter("127.0.0.1", 10050, source_ip="10.10.1.5")
 
