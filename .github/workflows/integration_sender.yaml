@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install packages
         run: |
           sudo wget https://repo.zabbix.com/zabbix/${{ env.ZABBIX_VERSION }}/ubuntu/pool/main/z/zabbix-release/zabbix-release_${{ env.ZABBIX_VERSION }}-4+ubuntu22.04_all.deb
