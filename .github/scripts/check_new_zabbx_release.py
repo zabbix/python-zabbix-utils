@@ -40,7 +40,7 @@ for branch in branches:
 
 if sver < max(versions):
     error = f"""New Zabbix version was found in https://git.zabbix.com.
-The <a href="{LIBREPO_URL}">zabbix_utils library</a> supports &lt;={sver} but the latest version of Zabbix is {max(versions)}.
-What to do next? Look at the manual: {MANUAL_REPO}.
+The zabbix_utils library ({LIBREPO_URL}) supports <={sver} but the latest version of Zabbix is {max(versions)}.
+What to do next? Look at the manual: {MANUAL_REPO}
 """
     sys.exit(error)
