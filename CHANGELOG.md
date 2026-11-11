@@ -1,3 +1,10 @@
+## [2.0.5](https://github.com/zabbix/python-zabbix-utils/compare/v2.0.4...v2.0.5) (2026-11-11)
+
+### Features:
+
+- added support for Zabbix 8.0
+- added support of dict and list values for ItemValue to send them as JSON
+
 ## [2.0.4](https://github.com/zabbix/python-zabbix-utils/compare/v2.0.3...v2.0.4) (2025-12-17)
 
 ### Changes:

@@ -273,7 +273,7 @@ class ItemValue():
     Args:
         host (str): Specify host name the item belongs to (as registered in Zabbix frontend).
         key (str): Specify item key to send value to.
-        value (str): Specify item value.
+        value (str): Specify item value. Dict and list values are sent as JSON.
         clock (int, optional): Specify time in Unix timestamp format. Defaults to `None`.
         ns (int, optional): Specify time expressed in nanoseconds. Defaults to `None`.
     """
@@ -282,7 +282,7 @@ class ItemValue():
                  clock: Union[int, None] = None, ns: Union[int, None] = None):
         self.host = str(host)
         self.key = str(key)
-        self.value = str(value)
+        self.value = json.dumps(value, ensure_ascii=False) if isinstance(value, (dict, list)) else str(value)
         self.clock = None
         self.ns = None
 
