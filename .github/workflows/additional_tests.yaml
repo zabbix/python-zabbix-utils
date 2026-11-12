@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Python
         run: |
           sudo apt update && sudo apt-get install -y python3 python3-pip python-is-python3
@@ -61,13 +61,15 @@ jobs:
           test $(cat /tmp/importing.log | wc -l) -eq 0 || exit 1
   additional-tests:
     name: Additional tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install packages
         run: |
-          sudo apt update && sudo apt install -y git sudo nginx gcc make automake pkg-config postgresql-14 libpostgresql-ocaml-dev libxml2-dev libpcre3-dev libevent-dev apache2 libapache2-mod-php php8.1-pgsql php8.1-bcmath php8.1-xml php8.1-gd php8.1-ldap php8.1-mbstring libzip-dev
+          sudo apt update && sudo apt install -y git sudo nginx gcc make automake pkg-config postgresql libpq-dev libxml2-dev libpcre2-dev libevent-dev apache2 libapache2-mod-php php-pgsql php-bcmath php-xml php-gd php-ldap php-mbstring libzip-dev
+          echo "PG_VER=$(ls /usr/lib/postgresql | sort -V | tail -n1)" >> $GITHUB_ENV
+          echo "PHP_VER=$(ls /etc/php | sort -V | tail -n1)" >> $GITHUB_ENV
       - name: Build from sources
         run: |
           WORKDIR=$(pwd)
@@ -87,11 +89,11 @@ jobs:
           sudo rm /var/www/html/index.html
           sudo cp -a . /var/www/html/
           sudo cp $WORKDIR/${{ env.CONFIG_PATH }}/zabbix.conf.php /var/www/html/conf/
-          sudo cp $WORKDIR/${{ env.CONFIG_PATH }}/pg_hba.conf /etc/postgresql/14/main/pg_hba.conf
+          sudo cp $WORKDIR/${{ env.CONFIG_PATH }}/pg_hba.conf /etc/postgresql/$PG_VER/main/pg_hba.conf
           sudo chown -R www-data:www-data /var/www/html/
-          sudo sed -i "s/post_max_size = 8M/post_max_size = 16M/g" /etc/php/8.1/apache2/php.ini
-          sudo sed -i "s/max_execution_time = 30/max_execution_time = 300/g" /etc/php/8.1/apache2/php.ini
-          sudo sed -i "s/max_input_time = 60/max_input_time = 300/g" /etc/php/8.1/apache2/php.ini
+          sudo sed -i "s/post_max_size = 8M/post_max_size = 16M/g" /etc/php/$PHP_VER/apache2/php.ini
+          sudo sed -i "s/max_execution_time = 30/max_execution_time = 300/g" /etc/php/$PHP_VER/apache2/php.ini
+          sudo sed -i "s/max_input_time = 60/max_input_time = 300/g" /etc/php/$PHP_VER/apache2/php.ini
           sudo sed -i "s/Listen 80/Listen 8080/g" /etc/apache2/ports.conf
           sudo sed -i "s/<VirtualHost \*\:80>/<VirtualHost *:8080>/g" /etc/apache2/sites-enabled/000-default.conf
           sudo locale-gen en_US.UTF-8
@@ -100,10 +102,10 @@ jobs:
         run: |
           sudo addgroup --system --quiet zabbix
           sudo adduser --quiet --system --disabled-login --ingroup zabbix --home /var/lib/zabbix --no-create-home zabbix
-          sudo mkdir -p /var/run/postgresql/14-main.pg_stat_tmp
-          sudo touch /var/run/postgresql/14-main.pg_stat_tmp/global.tmp
-          sudo chmod 0777 /var/run/postgresql/14-main.pg_stat_tmp/global.tmp
-          (sudo -u postgres /usr/lib/postgresql/14/bin/postgres -D /var/lib/postgresql/14/main -c config_file=/etc/postgresql/14/main/postgresql.conf)&
+          sudo mkdir -p /var/run/postgresql/$PG_VER-main.pg_stat_tmp
+          sudo touch /var/run/postgresql/$PG_VER-main.pg_stat_tmp/global.tmp
+          sudo chmod 0777 /var/run/postgresql/$PG_VER-main.pg_stat_tmp/global.tmp
+          (sudo -u postgres /usr/lib/postgresql/$PG_VER/bin/postgres -D /var/lib/postgresql/$PG_VER/main -c config_file=/etc/postgresql/$PG_VER/main/postgresql.conf)&
           sleep 5
           cd /tmp/zabbix-branch/database/postgresql
           sudo -u postgres createuser zabbix
