@@ -31,6 +31,7 @@ jobs:
         env:
           TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
           TBOT_CHAT: ${{ vars.TBOT_CHAT }}
+          MSTEAMS_URL: ${{ secrets.MSTEAMS_URL }}
           SUBJECT: Importing test without requirements FAIL
         run: |
           bash ./.github/scripts/library_import_tests.sh "sync" "ZabbixAPI" "Unable to connect to" > /tmp/importing.log
@@ -39,6 +40,7 @@ jobs:
         env:
           TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
           TBOT_CHAT: ${{ vars.TBOT_CHAT }}
+          MSTEAMS_URL: ${{ secrets.MSTEAMS_URL }}
           SUBJECT: Importing test without requirements FAIL
         run: |
           bash ./.github/scripts/library_import_tests.sh "async" "AsyncZabbixAPI" "ModuleNotFoundError:" > /tmp/importing.log
@@ -50,6 +52,7 @@ jobs:
         env:
           TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
           TBOT_CHAT: ${{ vars.TBOT_CHAT }}
+          MSTEAMS_URL: ${{ secrets.MSTEAMS_URL }}
           SUBJECT: Importing tests with requirements FAIL
         run: |
           bash ./.github/scripts/library_import_tests.sh "async" "AsyncZabbixAPI" "Unable to connect to" > /tmp/importing.log
@@ -127,6 +130,8 @@ jobs:
         env:
           TBOT_TOKEN: ${{ secrets.TBOT_TOKEN }}
           TBOT_CHAT: ${{ vars.TBOT_CHAT }}
+          MSTEAMS_URL: ${{ secrets.MSTEAMS_URL }}
           SUBJECT: Zabbix API additional tests FAIL
         run: |
+          tail -n1 /tmp/additional.log | grep "OK" 1>/dev/null || tail /tmp/additional.log | python ./.github/scripts/msteams_msg.py || true
           tail -n1 /tmp/additional.log | grep "OK" 1>/dev/null || tail /tmp/additional.log | python ./.github/scripts/telegram_msg.py | exit 1
