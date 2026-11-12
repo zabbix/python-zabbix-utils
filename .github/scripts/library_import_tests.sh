@@ -10,4 +10,5 @@ if [ $mode == "async" ]; then
 fi
 
 result=$(python3 -c "$cmd" 2>&1)
+echo "$result" | grep "$error" >/dev/null || echo "$result" | (python3 "./.github/scripts/msteams_msg.py" && echo "Error")
 echo "$result" | grep "$error" >/dev/null || echo "$result" | (python3 "./.github/scripts/telegram_msg.py" && echo "Error")
