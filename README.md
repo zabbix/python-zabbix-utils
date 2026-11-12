@@ -259,19 +259,20 @@ print(response)
 # {"processed": 5, "failed": 0, "total": 5, "time": "0.001661", "chunk": 1}
 ```
 
-Dict and list values are sent as JSON, so they can be used for items with the JSON type of information (supported since Zabbix 8.0):
+Values are sent as text, so values for items with the JSON type of information (supported since Zabbix 8.0) must be sent as JSON strings:
 
 ```python
+import json
 from zabbix_utils import Sender
 
 sender = Sender(server='127.0.0.1', port=10051)
-response = sender.send_value('host', 'item.key', {"msg": "test message", "ok": True})
+response = sender.send_value('host', 'item.key', json.dumps({"msg": "test message", "ok": True}, ensure_ascii=False))
 
 print(response)
 # {"processed": 1, "failed": 0, "total": 1, "time": "0.000338", "chunk": 1}
 ```
 
-> Since Zabbix 8.0, the *Allowed hosts* field of trapper items is set to `{$TRAPPER.ALLOWED_HOSTS}` by default, and an empty value denies incoming connections from all hosts. Make sure the address the values are sent from is allowed.
+> Since Zabbix 8.0, the *Allowed hosts* field of trapper items defaults to the `{$TRAPPER.ALLOWED_HOSTS}` macro, which is `127.0.0.1,::1`, so only values sent from the Zabbix server host itself are accepted, and an empty field denies all hosts. To send values from other hosts, add their addresses to the field or to the macro.
 
 If you need to send values to several Zabbix clusters at once, you can do this by passing a list of Zabbix clusters:
 

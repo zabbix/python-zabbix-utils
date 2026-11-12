@@ -316,7 +316,7 @@ class CompatibilitySenderTest(unittest.TestCase):
         time.sleep(5)
 
         value = {"msg": "test message", "list": [1, "two", None], "ok": True, "text": "Hello, world."}
-        resp = self.sender.send_value(self.hostname, self.jsonkey, value)
+        resp = self.sender.send_value(self.hostname, self.jsonkey, json.dumps(value))
 
         self.assertEqual(type(resp), TrapperResponse, "Sending JSON item value was going wrong")
         self.assertEqual(resp.processed, 1, "Number of the processed values is unexpected")
@@ -661,7 +661,7 @@ class CompatibilityAsyncSenderTest(unittest.IsolatedAsyncioTestCase):
         time.sleep(5)
 
         value = {"msg": "test message", "list": [1, "two", None], "ok": True, "text": "Hello, world."}
-        resp = await self.sender.send_value(self.hostname, self.jsonkey, value)
+        resp = await self.sender.send_value(self.hostname, self.jsonkey, json.dumps(value))
 
         self.assertEqual(type(resp), TrapperResponse, "Sending JSON item value was going wrong")
         self.assertEqual(resp.processed, 1, "Number of the processed values is unexpected")

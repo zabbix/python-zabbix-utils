@@ -202,18 +202,6 @@ class TestItemValue(unittest.TestCase):
                 'raised': True
             },
             {
-                'input': {'host':'test_host', 'key':'test_key', 'value': {'msg': 'test message', 'ok': True}},
-                'output': json.dumps({"host": "test_host", "key": "test_key", "value": '{"msg": "test message", "ok": true}'}),
-                'exception': ValueError,
-                'raised': False
-            },
-            {
-                'input': {'host':'test_host', 'key':'test_key', 'value': [1, 'two', None]},
-                'output': json.dumps({"host": "test_host", "key": "test_key", "value": '[1, "two", null]'}),
-                'exception': ValueError,
-                'raised': False
-            },
-            {
                 'input': {'host':'test_host', 'key':'test_key', 'value': '{"msg":"test message"}'},
                 'output': json.dumps({"host": "test_host", "key": "test_key", "value": '{"msg":"test message"}'}),
                 'exception': ValueError,
