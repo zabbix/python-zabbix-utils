@@ -48,7 +48,7 @@ async def main():
     The main function to perform asynchronous tasks.
     """
 
-    # Create a AsyncGetter instance with a custom SSL context
+    # Create an AsyncGetter instance with a custom SSL context
     agent = AsyncGetter(
         host=ZABBIX_AGENT,
         port=ZABBIX_PORT,

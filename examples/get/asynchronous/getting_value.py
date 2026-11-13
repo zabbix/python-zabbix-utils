@@ -14,7 +14,7 @@ async def main():
     The main function to perform asynchronous tasks.
     """
 
-    # Create a AsyncGetter instance for querying Zabbix agent
+    # Create an AsyncGetter instance for querying Zabbix agent
     agent = AsyncGetter(host='127.0.0.1', port=10050)
 
     # Send a Zabbix agent query for network interface discovery
