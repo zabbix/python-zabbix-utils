@@ -310,19 +310,19 @@ class TestZabbixAPI(unittest.TestCase):
             },
             {
                 'input': {'token': DEFAULT_VALUES['token']},
-                'version': '7.4.1',
+                'version': '8.0.1',
                 'raised': {'APINotSupported': False, 'ProcessingError': False},
                 'output': DEFAULT_VALUES['token']
             },
             {
                 'input': {'token': DEFAULT_VALUES['token'], 'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
-                'version': '7.4.2',
+                'version': '8.0.2',
                 'raised': {'APINotSupported': False, 'ProcessingError': True},
                 'output': DEFAULT_VALUES['token']
             },
             {
                 'input': {'user': DEFAULT_VALUES['user'], 'password': DEFAULT_VALUES['password']},
-                'version': '7.4.3',
+                'version': '8.0.3',
                 'raised': {'APINotSupported': False, 'ProcessingError': False},
                 'output': DEFAULT_VALUES['session']
             }

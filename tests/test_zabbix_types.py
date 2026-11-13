@@ -200,6 +200,12 @@ class TestItemValue(unittest.TestCase):
                 'output': json.dumps({"host": "test_host", "key": "test_key", "value": "0", "ns": '123abc'}),
                 'exception': ValueError,
                 'raised': True
+            },
+            {
+                'input': {'host':'test_host', 'key':'test_key', 'value': '{"msg":"test message"}'},
+                'output': json.dumps({"host": "test_host", "key": "test_key", "value": '{"msg":"test message"}'}),
+                'exception': ValueError,
+                'raised': False
             }
         ]
 

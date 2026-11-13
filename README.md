@@ -9,6 +9,7 @@
 [![Zabbix 7.0](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_70.yaml/badge.svg)](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_70.yaml)
 [![Zabbix 7.2](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_72.yaml/badge.svg)](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_72.yaml)
 [![Zabbix 7.4](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_74.yaml/badge.svg)](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_74.yaml)
+[![Zabbix 8.0](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_80.yaml/badge.svg)](https://github.com/zabbix/python-zabbix-utils/actions/workflows/compatibility_80.yaml)
 
 **zabbix_utils** is a Python library for working with [Zabbix API](https://www.zabbix.com/documentation/current/manual/api/reference) as well as with [Zabbix sender](https://www.zabbix.com/documentation/current/manpages/zabbix_sender) and [Zabbix get](https://www.zabbix.com/documentation/current/manpages/zabbix_get) protocols.
 
@@ -29,7 +30,7 @@ Supported versions:
 
 Tested on:
 
-* Zabbix 6.0, 7.0, 7.2 and 7.4
+* Zabbix 6.0, 7.0, 7.2, 7.4 and 8.0
 * Python 3.8, 3.9, 3.10, 3.11, 3.12 and 3.13
 
 Dependencies:
@@ -257,6 +258,21 @@ response = sender.send(items)
 print(response)
 # {"processed": 5, "failed": 0, "total": 5, "time": "0.001661", "chunk": 1}
 ```
+
+Values are sent as text, so values for items with the JSON type of information (supported since Zabbix 8.0) must be sent as JSON strings:
+
+```python
+import json
+from zabbix_utils import Sender
+
+sender = Sender(server='127.0.0.1', port=10051)
+response = sender.send_value('host', 'item.key', json.dumps({"msg": "test message", "ok": True}, ensure_ascii=False))
+
+print(response)
+# {"processed": 1, "failed": 0, "total": 1, "time": "0.000338", "chunk": 1}
+```
+
+> Since Zabbix 8.0, the *Allowed hosts* field of trapper items defaults to the `{$TRAPPER.ALLOWED_HOSTS}` macro, which is `127.0.0.1,::1`, so only values sent from the Zabbix server host itself are accepted, and an empty field denies all hosts. To send values from other hosts, add their addresses to the field or to the macro.
 
 If you need to send values to several Zabbix clusters at once, you can do this by passing a list of Zabbix clusters:
 

@@ -1,3 +1,9 @@
+## [2.0.5](https://github.com/zabbix/python-zabbix-utils/compare/v2.0.4...v2.0.5) (2026-11-13)
+
+### Features:
+
+- added support for Zabbix 8.0
+
 ## [2.0.4](https://github.com/zabbix/python-zabbix-utils/compare/v2.0.3...v2.0.4) (2025-12-17)
 
 ### Changes:
@@ -77,7 +83,7 @@
 
 ## [1.1.0](https://github.com/zabbix/python-zabbix-utils/compare/v1.0.3...v1.1.0) (2024-01-23)
 
-### Breaking Changes: 
+### Breaking Changes:
 
 - changed the format of the Sender response
 - changed the format of the Getter response
